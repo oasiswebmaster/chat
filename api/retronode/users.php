@@ -1,6 +1,6 @@
 <?php
 /**
- * Retronode Portal - Fetch active profiles
+ * Retronode Portal - Fetch active profiles (people only)
  */
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -21,16 +21,25 @@ if (!getLoggedId()) {
 
 $currentUserId = getLoggedId();
 $db = BxDolDb::getInstance();
-$profiles = $db->getAll("SELECT id FROM sys_profiles WHERE status = 'active' AND type != 'system'");
+// Select only active people (bx_persons)
+$profiles = $db->getAll("SELECT id FROM sys_profiles WHERE status = 'active' AND type = 'bx_persons'");
 $users = [];
 
 foreach ($profiles as $p) {
     if ($p['id'] == $currentUserId) continue; // Skip current user
     $profile = BxDolProfile::getInstance($p['id']);
     if ($profile) {
+        $name = $profile->getDisplayName();
+        
+        // Filter out guests and test profiles
+        $lowerName = strtolower($name);
+        if (strpos($lowerName, 'guest') === 0 || strpos($lowerName, 'test') === 0) {
+            continue;
+        }
+        
         $users[] = [
             'id' => (int)$p['id'],
-            'name' => $profile->getDisplayName()
+            'name' => $name
         ];
     }
 }
