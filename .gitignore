@@ -43,6 +43,9 @@ next-env.d.ts
 # Local Netlify folder
 .netlify
 
+# 3D models (served from or2026-assets CDN repo)
+/deploy-mirror/models/
+
 # Scratch files and credentials
 /scratch/
 /web_developer_credentials.md
