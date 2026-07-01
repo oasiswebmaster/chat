@@ -95,11 +95,23 @@ export const portalApi = {
     formData.append('file', file);
     return request<{ ok: true; message: string }>('/submit_doc.php', { method: 'POST', body: formData });
   },
-  getChatMessages: () => request<{ ok: true; messages: any[] }>('/chat.php'),
-  sendChatMessage: (message: string) =>
-    request<{ ok: true; success: boolean }>('/chat.php', {
+  getChatTalks: () => request<{ ok: true; talks: any[] }>('/chat.php?action=list_talks'),
+  getChatMessages: (talkId: number) => request<{ ok: true; messages: any[] }>(`/chat.php?action=get_messages&talk_id=${talkId}`),
+  sendChatMessage: (talkId: number, message: string) =>
+    request<{ ok: true; success: boolean }>(`/chat.php?action=send_message&talk_id=${talkId}`, {
       method: 'POST',
       body: JSON.stringify({ message }),
     }),
+  createChatTalk: (type: 'private' | 'group', targetIdOrIds: number | number[], groupName?: string) =>
+    request<{ ok: true; talk_id: number }>('/chat.php?action=create_talk', {
+      method: 'POST',
+      body: JSON.stringify({
+        type,
+        participant_id: typeof targetIdOrIds === 'number' ? targetIdOrIds : undefined,
+        participant_ids: Array.isArray(targetIdOrIds) ? targetIdOrIds : undefined,
+        name: groupName
+      }),
+    }),
+  getPortalUsers: () => request<{ ok: true; users: any[] }>('/users.php'),
   downloadUrl: (id: string) => `${API_BASE}/download.php?id=${encodeURIComponent(id)}`,
 };

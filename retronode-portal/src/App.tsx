@@ -9,7 +9,7 @@ import { SubmitDocumentForm } from './components/SubmitDocumentForm';
 import { emptyRootFolder, rootFolder } from './data';
 import { FileSystemNode, FileType, PortalSession } from './types';
 import { portalApi } from './lib/api';
-import { ChevronLeft, Folder, FileText, Image as ImageIcon, Music, File as FileIconGeneric, Search, ChevronRight, Lock, Unlock, Upload, UploadCloud, FolderPlus, FilePlus, Home, Video, FileSpreadsheet, Presentation, FileArchive, Film, Loader2, RefreshCw, Trash2, Pencil } from 'lucide-react';
+import { ChevronLeft, Folder, FileText, Image as ImageIcon, Music, File as FileIconGeneric, Search, ChevronRight, Lock, Unlock, Upload, UploadCloud, FolderPlus, FilePlus, Home, Video, FileSpreadsheet, Presentation, FileArchive, Film, Loader2, RefreshCw, Trash2, Pencil, Plus, MessageSquare, X } from 'lucide-react';
 
 export default function App() {
   const [fileSystem, setFileSystem] = useState<FileSystemNode>(emptyRootFolder);
@@ -34,7 +34,24 @@ export default function App() {
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [chatInput, setChatInput] = useState<string>('');
   const [chatLoading, setChatLoading] = useState<boolean>(false);
+  const [chatLoadingState, setChatLoadingState] = useState<'loading' | 'success' | 'error'>('loading');
   const [diskSpace, setDiskSpace] = useState<any>(null);
+  const [isEmbed] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('embed') === 'true';
+    }
+    return false;
+  });
+  const [talks, setTalks] = useState<any[]>([]);
+  const [selectedTalk, setSelectedTalk] = useState<any | null>(null);
+  const [portalUsers, setPortalUsers] = useState<any[]>([]);
+  const [showNewTalkModal, setShowNewTalkModal] = useState<boolean>(false);
+  const [newTalkType, setNewTalkType] = useState<'private' | 'group'>('private');
+  const [groupName, setGroupName] = useState<string>('');
+  const [selectedGroupUsers, setSelectedGroupUsers] = useState<number[]>([]);
+  const [userSearchQuery, setUserSearchQuery] = useState<string>('');
+  const [activePane, setActivePane] = useState<'list' | 'chat'>('list');
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [renamingNode, setRenamingNode] = useState<FileSystemNode | null>(null);
 
@@ -75,40 +92,94 @@ export default function App() {
   // Chat Polling Effect
   useEffect(() => {
     if (viewMode !== 'chat') return;
-    
-    const fetchMessages = async () => {
+
+    const fetchTalks = async () => {
       try {
-        const data = await portalApi.getChatMessages();
+        const data = await portalApi.getChatTalks();
         if (data && data.ok) {
-          setChatMessages(data.messages || []);
+          setTalks(data.talks || []);
+          // Automatically select Community Chat (id: 1) if nothing is selected
+          if (!selectedTalk && data.talks && data.talks.length > 0) {
+            const pub = data.talks.find((t: any) => t.id === 1) || data.talks[0];
+            setSelectedTalk(pub);
+          }
         }
       } catch (err) {
-        console.warn("Failed to fetch chat messages:", err);
+        console.warn("Failed to fetch talks:", err);
+      }
+    };
+
+    const fetchUsers = async () => {
+      try {
+        const data = await portalApi.getPortalUsers();
+        if (data && data.ok) {
+          setPortalUsers(data.users || []);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch users:", err);
+      }
+    };
+
+    void fetchTalks();
+    void fetchUsers();
+    
+    const talksInterval = setInterval(() => {
+      void fetchTalks();
+    }, 6000);
+
+    return () => {
+      clearInterval(talksInterval);
+    };
+  }, [viewMode, selectedTalk]);
+
+  // Messages Polling Effect
+  useEffect(() => {
+    if (viewMode !== 'chat' || !selectedTalk) {
+      setChatMessages([]);
+      return;
+    }
+
+    const fetchMessages = async () => {
+      try {
+        const data = await portalApi.getChatMessages(selectedTalk.id);
+        if (data && data.ok) {
+          setChatMessages(data.messages || []);
+          setChatLoadingState('success');
+        } else {
+          setChatLoadingState('error');
+        }
+      } catch (err) {
+        console.warn("Failed to fetch messages:", err);
+        setChatLoadingState('error');
       }
     };
 
     void fetchMessages();
-    const interval = setInterval(() => {
+    const msgsInterval = setInterval(() => {
       void fetchMessages();
-    }, 5000);
+    }, 4000);
 
-    return () => clearInterval(interval);
-  }, [viewMode]);
+    return () => {
+      clearInterval(msgsInterval);
+    };
+  }, [viewMode, selectedTalk]);
 
   const handleSendChatMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatInput.trim() || chatLoading) return;
+    if (!selectedTalk || !chatInput.trim() || chatLoading) return;
 
     const msgText = chatInput;
+    const talkId = selectedTalk.id;
     setChatInput('');
     setChatLoading(true);
 
     try {
-      await portalApi.sendChatMessage(msgText);
+      await portalApi.sendChatMessage(talkId, msgText);
       // Immediately refresh messages
-      const data = await portalApi.getChatMessages();
+      const data = await portalApi.getChatMessages(talkId);
       if (data && data.ok) {
         setChatMessages(data.messages || []);
+        setChatLoadingState('success');
       }
     } catch (err) {
       console.error("Failed to send chat message:", err);
@@ -117,6 +188,63 @@ export default function App() {
       setChatLoading(false);
     }
   };
+
+  const handleCreatePrivateTalk = async (targetId: number) => {
+    try {
+      const res = await portalApi.createChatTalk('private', targetId);
+      if (res && res.ok) {
+        const talksRes = await portalApi.getChatTalks();
+        if (talksRes && talksRes.ok) {
+          setTalks(talksRes.talks || []);
+          const newTalk = talksRes.talks.find((t: any) => t.id === res.talk_id);
+          if (newTalk) {
+            setSelectedTalk(newTalk);
+            setActivePane('chat');
+          }
+        }
+        setShowNewTalkModal(false);
+      }
+    } catch (err) {
+      console.error("Failed to start DM:", err);
+      alert("Failed to start direct message: " + (err instanceof Error ? err.message : String(err)));
+    }
+  };
+
+  const handleCreateGroupTalk = async () => {
+    if (!groupName.trim() || selectedGroupUsers.length === 0) return;
+    try {
+      const res = await portalApi.createChatTalk('group', selectedGroupUsers, groupName.trim());
+      if (res && res.ok) {
+        const talksRes = await portalApi.getChatTalks();
+        if (talksRes && talksRes.ok) {
+          setTalks(talksRes.talks || []);
+          const newTalk = talksRes.talks.find((t: any) => t.id === res.talk_id);
+          if (newTalk) {
+            setSelectedTalk(newTalk);
+            setActivePane('chat');
+          }
+        }
+        setShowNewTalkModal(false);
+        setGroupName('');
+        setSelectedGroupUsers([]);
+      }
+    } catch (err) {
+      console.error("Failed to start group talk:", err);
+      alert("Failed to create group talk: " + (err instanceof Error ? err.message : String(err)));
+    }
+  };
+
+  const handleToggleGroupUser = (userId: number) => {
+    setSelectedGroupUsers((prev) => 
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    );
+  };
+
+  const filteredUsers = useMemo(() => {
+    return portalUsers.filter((u) => 
+      u.name.toLowerCase().includes(userSearchQuery.toLowerCase())
+    );
+  }, [portalUsers, userSearchQuery]);
 
   const isAdmin = session.admin;
 
@@ -373,6 +501,264 @@ export default function App() {
     }
     e.target.value = ''; // Reset input
   };
+
+  const renderChatSystem = () => {
+    return (
+      <div className="flex-1 flex h-full bg-transparent overflow-hidden relative">
+        {/* Left Pane - Sidebar */}
+        <div className={`${activePane === 'list' ? 'flex' : 'hidden'} md:flex w-full md:w-72 flex-col bg-black/20 border-r border-white/10 shrink-0 min-h-0`}>
+          <div className="p-4 border-b border-white/10 flex items-center justify-between shrink-0 bg-white/5">
+            <span className="font-bold text-white text-base">Conversations</span>
+            <button 
+              onClick={() => { setShowNewTalkModal(true); }}
+              className="p-1.5 bg-blue-600 hover:bg-blue-500 rounded-lg text-white transition-all shrink-0"
+              title="New Chat"
+            >
+              <Plus size={16} strokeWidth={2.5} />
+            </button>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            {talks.map((talk) => (
+              <button
+                key={talk.id}
+                onClick={() => { setSelectedTalk(talk); setActivePane('chat'); }}
+                className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all border ${
+                  selectedTalk?.id === talk.id
+                    ? 'bg-blue-600/20 border-blue-500/30 text-white font-bold'
+                    : 'border-transparent text-gray-300 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <div className="w-10 h-10 rounded-full bg-blue-600/30 border border-blue-500/20 text-blue-400 flex items-center justify-center text-sm font-bold uppercase shrink-0">
+                  {talk.title.slice(0, 2)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm truncate block font-medium leading-tight">{talk.title}</span>
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5 block leading-none">{talk.type}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Right Pane - Chat Window */}
+        <div className={`${activePane === 'chat' ? 'flex' : 'hidden'} md:flex flex-1 flex-col min-h-0 bg-transparent`}>
+          {/* Header */}
+          <div className="h-14 border-b border-white/10 px-4 flex items-center justify-between bg-white/5 shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <button 
+                onClick={() => setActivePane('list')}
+                className="md:hidden p-1 text-gray-400 hover:text-white transition-colors shrink-0"
+              >
+                <ChevronLeft size={20} strokeWidth={2.5} />
+              </button>
+              {selectedTalk && (
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-blue-600/20 border border-blue-500/10 text-blue-400 flex items-center justify-center text-xs font-bold uppercase shrink-0">
+                    {selectedTalk.title.slice(0, 2)}
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-sm font-bold text-white block truncate leading-tight">{selectedTalk.title}</span>
+                    <span className="text-[10px] text-gray-400 uppercase tracking-wider">{selectedTalk.type}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 min-h-0">
+            {!selectedTalk ? (
+              <div className="flex flex-col items-center justify-center h-full text-gray-400 py-16 text-center">
+                <MessageSquare size={48} className="text-gray-600 mb-4" strokeWidth={1.5} />
+                <p className="text-lg font-bold">Select a conversation</p>
+                <p className="text-sm text-gray-500 mt-1">Choose a contact or channel from the sidebar to start messaging.</p>
+              </div>
+            ) : chatLoadingState === 'loading' ? (
+              <div className="flex flex-col items-center justify-center h-full text-gray-400 py-16">
+                <Loader2 className="w-8 h-8 animate-spin mb-2 text-gray-500" />
+                <p className="text-base font-medium">Connecting to chat...</p>
+                <p className="text-xs text-gray-500 mt-1">If this takes long, verify your GitHub token configuration.</p>
+              </div>
+            ) : chatLoadingState === 'error' ? (
+              <div className="flex flex-col items-center justify-center h-full text-red-400 py-16 text-center px-6">
+                <p className="text-lg font-bold">Failed to connect to chat</p>
+                <p className="text-sm text-gray-400 mt-2 max-w-md">
+                  Please verify that your **GitHub Personal Access Token** is configured correctly in 
+                  <code className="bg-white/10 px-1.5 py-0.5 rounded text-gray-200 text-xs ml-1">/docs_portal/api/retronode/chat_config.json</code> on the VPS.
+                </p>
+              </div>
+            ) : chatMessages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-gray-400 py-16 text-center">
+                <p className="text-lg font-bold">No messages yet</p>
+                <p className="text-sm text-gray-500 mt-1">Be the first to post a message in this channel!</p>
+              </div>
+            ) : (
+              chatMessages.map((msg, idx) => (
+                <div key={idx} className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-full bg-blue-600/30 border border-blue-500/20 text-blue-400 flex items-center justify-center text-sm font-bold uppercase shrink-0">
+                    {msg.author ? msg.author.slice(0, 2) : '??'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-sm font-bold text-gray-100">{msg.author}</span>
+                      <span className="text-[10px] text-gray-500">{msg.created_at}</span>
+                    </div>
+                    <div className="mt-1 text-sm text-gray-300 leading-relaxed bg-white/5 p-3 rounded-lg border border-white/5 whitespace-pre-wrap">
+                      {msg.body}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Form */}
+          {selectedTalk && (
+            <form onSubmit={handleSendChatMessage} className="p-4 border-t border-white/10 bg-white/5 flex gap-2 items-center shrink-0">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Type a message..."
+                className="flex-1 bg-white/5 border border-white/10 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                disabled={chatLoading}
+              />
+              <button
+                type="submit"
+                disabled={chatLoading || !chatInput.trim()}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold disabled:opacity-50 transition-colors shrink-0 flex items-center gap-1"
+              >
+                {chatLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send'}
+              </button>
+            </form>
+          )}
+        </div>
+        
+        {/* Modal definition */}
+        {showNewTalkModal && (
+          <div className="fixed inset-0 z-[1000000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl flex flex-col overflow-hidden max-h-[80vh]">
+              <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/5">
+                <span className="font-bold text-white text-base">New Talk</span>
+                <button 
+                  onClick={() => { setShowNewTalkModal(false); setGroupName(''); setSelectedGroupUsers([]); }}
+                  className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              
+              <div className="flex border-b border-white/5 shrink-0 bg-white/2">
+                <button 
+                  onClick={() => setNewTalkType('private')}
+                  className={`flex-1 py-3 text-sm font-bold border-b-2 transition-all ${
+                    newTalkType === 'private' ? 'border-blue-500 text-blue-400' : 'border-transparent text-gray-400 hover:text-gray-300'
+                  }`}
+                >
+                  Direct Message
+                </button>
+                <button 
+                  onClick={() => setNewTalkType('group')}
+                  className={`flex-1 py-3 text-sm font-bold border-b-2 transition-all ${
+                    newTalkType === 'group' ? 'border-blue-500 text-blue-400' : 'border-transparent text-gray-400 hover:text-gray-300'
+                  }`}
+                >
+                  Group Chat
+                </button>
+              </div>
+
+              <div className="p-3 border-b border-white/5 bg-white/2">
+                <input
+                  type="text"
+                  placeholder="Search members..."
+                  value={userSearchQuery}
+                  onChange={(e) => setUserSearchQuery(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                />
+              </div>
+
+              {newTalkType === 'group' && (
+                <div className="p-3 border-b border-white/5 bg-white/2">
+                  <input
+                    type="text"
+                    placeholder="Group Chat Name..."
+                    value={groupName}
+                    onChange={(e) => setGroupName(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                  />
+                </div>
+              )}
+
+              <div className="flex-1 overflow-y-auto p-2 min-h-[200px]">
+                {filteredUsers.length === 0 ? (
+                  <div className="py-12 text-center text-sm text-gray-500">
+                    No matching members found.
+                  </div>
+                ) : (
+                  filteredUsers.map((u) => {
+                    const isSelected = selectedGroupUsers.includes(u.id);
+                    return (
+                      <div key={u.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-blue-600/30 border border-blue-500/20 text-blue-400 flex items-center justify-center text-xs font-bold uppercase shrink-0">
+                            {u.name.slice(0, 2)}
+                          </div>
+                          <span className="text-sm font-medium text-gray-200">{u.name}</span>
+                        </div>
+                        
+                        {newTalkType === 'private' ? (
+                          <button
+                            onClick={() => handleCreatePrivateTalk(u.id)}
+                            className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-colors"
+                          >
+                            Message
+                          </button>
+                        ) : (
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleToggleGroupUser(u.id)}
+                            className="w-4 h-4 text-blue-600 bg-white/5 border-white/10 rounded focus:ring-blue-500"
+                          />
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {newTalkType === 'group' && (
+                <div className="p-3 border-t border-white/10 bg-white/5 flex justify-end gap-2 shrink-0">
+                  <button
+                    onClick={() => { setShowNewTalkModal(false); setGroupName(''); setSelectedGroupUsers([]); }}
+                    className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCreateGroupTalk}
+                    disabled={!groupName.trim() || selectedGroupUsers.length === 0}
+                    className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    Create Group
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  if (isEmbed) {
+    return (
+      <div className="h-screen w-screen bg-transparent flex flex-col font-sans tracking-tight overflow-hidden">
+        {renderChatSystem()}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-4 sm:p-8 flex items-center justify-center font-sans tracking-tight bg-transparent">
@@ -633,54 +1019,7 @@ export default function App() {
             ) : viewMode === 'submit' ? (
               <SubmitDocumentForm session={session} />
             ) : (
-              <div className="flex flex-col h-full max-w-4xl mx-auto bg-white/5 border border-white/10 rounded-xl overflow-hidden backdrop-blur-md">
-                {/* Chat Messages */}
-                <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 min-h-0">
-                  {chatMessages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-gray-400 py-16">
-                      <Loader2 className="w-8 h-8 animate-spin mb-2 text-gray-500" />
-                      <p className="text-base font-medium">Connecting to chat...</p>
-                      <p className="text-xs text-gray-500 mt-1">If this takes long, verify your GitHub token configuration.</p>
-                    </div>
-                  ) : (
-                    chatMessages.map((msg, idx) => (
-                      <div key={idx} className="flex items-start gap-3">
-                        <div className="w-9 h-9 rounded-full bg-blue-600/30 border border-blue-500/20 text-blue-400 flex items-center justify-center text-sm font-bold uppercase shrink-0">
-                          {msg.author.slice(0, 2)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-sm font-bold text-gray-100">{msg.author}</span>
-                            <span className="text-[10px] text-gray-500">{msg.created_at}</span>
-                          </div>
-                          <div className="mt-1 text-sm text-gray-300 leading-relaxed bg-white/5 p-3 rounded-lg border border-white/5 whitespace-pre-wrap">
-                            {msg.body}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                {/* Message Input Form */}
-                <form onSubmit={handleSendChatMessage} className="p-4 border-t border-white/10 bg-white/5 flex gap-2 items-center">
-                  <input
-                    type="text"
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Type a message..."
-                    className="flex-1 bg-white/5 border border-white/10 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors"
-                    disabled={chatLoading}
-                  />
-                  <button
-                    type="submit"
-                    disabled={chatLoading || !chatInput.trim()}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold disabled:opacity-50 transition-colors shrink-0 flex items-center gap-1"
-                  >
-                    {chatLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send'}
-                  </button>
-                </form>
-              </div>
+              renderChatSystem()
             )}
           </div>
         </div>
