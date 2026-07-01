@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice - Oasis RV Resort Owners Association</title>
+    <style>
+        :root {
+            --primary: #1e293b;
+            --primary-light: #38bdf8;
+            --text-main: #334155;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --bg-light: #f8fafc;
+            --success: #10b981;
+            --stripe-color: #635bff;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text-main);
+            line-height: 1.5;
+            margin: 0;
+            padding: 40px 20px;
+            background-color: #f1f5f9;
+        }
+
+        .invoice-container {
+            max-width: 850px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 60px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            position: relative;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 30px;
+            margin-bottom: 40px;
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: -0.025em;
+        }
+
+        .brand p {
+            margin: 5px 0 0 0;
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        .invoice-details {
+            text-align: right;
+        }
+
+        .invoice-details h2 {
+            margin: 0;
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: -0.03em;
+        }
+
+        .invoice-details p {
+            margin: 4px 0;
+            font-size: 14px;
+            color: var(--text-light);
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .meta-block h3 {
+            margin: 0 0 12px 0;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-light);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 6px;
+        }
+
+        .meta-block p {
+            margin: 4px 0;
+            font-size: 14px;
+        }
+
+        .meta-block .name {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 40px;
+        }
+
+        th {
+            background-color: var(--bg-light);
+            color: var(--primary);
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 700;
+            border-bottom: 2px solid var(--border);
+        }
+
+        td {
+            padding: 18px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+            vertical-align: top;
+        }
+
+        td.amount {
+            text-align: right;
+            font-weight: 600;
+        }
+
+        td .item-title {
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        td .item-desc {
+            color: var(--text-light);
+            font-size: 13px;
+            margin: 0;
+        }
+
+        .badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-free {
+            background-color: #ecfdf5;
+            color: var(--success);
+            border: 1px solid #a7f3d0;
+        }
+
+        .strike-price {
+            text-decoration: line-through;
+            color: var(--text-light);
+            font-weight: normal;
+            font-size: 13px;
+            margin-right: 6px;
+        }
+
+        .totals-section {
+            display: grid;
+            grid-template-columns: 1.15fr 1.05fr;
+            gap: 30px;
+            margin-bottom: 40px;
+            align-items: start;
+        }
+
+        .warranty-card {
+            background-color: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .warranty-card h4 {
+            margin: 0 0 10px 0;
+            color: var(--primary);
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .warranty-card ul {
+            margin: 0;
+            padding-left: 20px;
+            font-size: 13px;
+            color: var(--text-main);
+        }
+
+        .warranty-card li {
+            margin-bottom: 8px;
+        }
+
+        .warranty-card li:last-child {
+            margin-bottom: 0;
+        }
+
+        .totals {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .totals-table {
+            width: 100%;
+        }
+
+        .totals-table tr td {
+            padding: 8px 16px;
+            border-bottom: none;
+        }
+
+        .totals-table tr.discount td {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .totals-table tr.grand-total td {
+            border-top: 2px solid var(--primary);
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--primary);
+            padding-top: 16px;
+        }
+
+        .payment-instructions {
+            background-color: var(--bg-light);
+            border-radius: 8px;
+            padding: 24px;
+            border: 1px dashed var(--border);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .payment-instructions h4 {
+            margin: 0 0 8px 0;
+            color: var(--primary);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .payment-instructions p {
+            margin: 4px 0;
+            font-size: 13px;
+            color: var(--text-main);
+        }
+
+        .payment-method {
+            padding-left: 10px;
+            border-left: 3px solid var(--border);
+        }
+
+        .actions {
+            max-width: 850px;
+            margin: 20px auto 0 auto;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+        }
+
+        .btn:hover {
+            background-color: #0f172a;
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--bg-light);
+        }
+
+        .btn-stripe {
+            background-color: var(--stripe-color);
+        }
+
+        .btn-stripe:hover {
+            background-color: #544df2;
+        }
+
+        @media print {
+            body {
+                background-color: #ffffff;
+                padding: 0;
+            }
+            .invoice-container {
+                box-shadow: none;
+                padding: 0;
+            }
+            .actions {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="invoice-container">
+        <div class="header">
+            <div class="brand">
+                <h1>@photon.alchemist</h1>
+                <p>Web Design & Development Services</p>
+            </div>
+            <div class="invoice-details">
+                <h2>INVOICE</h2>
+                <p><strong>Invoice #:</strong> INV-2026-001</p>
+                <p><strong>Date:</strong> June 28, 2026</p>
+                <p><strong>Terms:</strong> Due Upon Receipt</p>
+            </div>
+        </div>
+
+        <div class="meta-grid">
+            <div class="meta-block">
+                <h3>Billed To</h3>
+                <p class="name">Oasis RV Resort Owners Association</p>
+                <p>Attn: Kay Bohlen (IT Advisor to the Board)</p>
+                <p>2615 Lakeshore Dr</p>
+                <p>Osoyoos, BC V0H 1V6</p>
+            </div>
+            <div class="meta-block">
+                <h3>From</h3>
+                <p class="name">@photon.alchemist</p>
+                <p>Charles Jeyapal</p>
+                <p>Email: jeyapal.c@gmail.com</p>
+                <p>Surrey, BC</p>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 65%;">Description</th>
+                    <th style="width: 15%; text-align: right;">Rate</th>
+                    <th style="width: 20%; text-align: right;">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- AGREED BILLED ITEMS -->
+                <tr>
+                    <td>
+                        <div class="item-title">Web Design Modernization & Facelift</div>
+                        <p class="item-desc">
+                            Complete responsive redesign and front-end facelift of the public website. Includes mobile-first layout, custom branding & typography (Oswald, Great Vibes), animated SVG loading splash screen, scroll-aware navigation, and polaroid-style photo carousel.
+                        </p>
+                    </td>
+                    <td style="text-align: right; color: var(--text-light);">Flat Rate</td>
+                    <td class="amount">$1,400.00</td>
+                </tr>
+                <tr>
+                    <td>
+                        <div class="item-title">Interactive Resort Map & Listings Engine</div>
+                        <p class="item-desc">
+                            Development of the scroll-driven 2D Isometric Resort Map featuring 6 interactive POI hotspots (Pool, Beach, Clubhouse, Hot Tub, Boat Storage, Main Gate) with pulse indicators, hover tooltips, and detailed info panels. Implementation of the dynamic "Buy/Rent" listing component.
+                        </p>
+                    </td>
+                    <td style="text-align: right; color: var(--text-light);">Flat Rate</td>
+                    <td class="amount">$700.00</td>
+                </tr>
+                <tr>
+                    <td>
+                        <div class="item-title">Admin Dashboard & Owner Portal Integration</div>
+                        <p class="item-desc">
+                            Creation of the secure administrative control panel (`/admin`) featuring password-lockout security, session timeouts, and full CRUD listing management. Integration of a cloud-based web builder (jsonblob.com API) for real-time site configuration, emergency alerts, and about page management. Built the Owner Dashboard (`/cabin-selector`) with an integrated secure document viewer.
+                        </p>
+                    </td>
+                    <td style="text-align: right; color: var(--text-light);">Flat Rate</td>
+                    <td class="amount">$450.00</td>
+                </tr>
+                <tr>
+                    <td>
+                        <div class="item-title">Hosting Deployment & GoDaddy cPanel Migration Prep</div>
+                        <p class="item-desc">
+                            Configured production environments (Netlify CDN hosting) and performed a complete system audit. Developed custom `.htaccess` routing, caching, gzip compression, CORS rules, and security headers for GoDaddy cPanel migration.
+                        </p>
+                    </td>
+                    <td style="text-align: right; color: var(--text-light);">Flat Rate</td>
+                    <td class="amount">$250.00</td>
+                </tr>
+
+                <!-- IN-KIND / FREE COMPLIMENTARY ITEMS -->
+                <tr>
+                    <td>
+                        <div class="item-title">
+                            <span>Owner Portal Diagnostic & Repairs (UNA CMS)</span>
+                            <span class="badge badge-free">In-Kind</span>
+                        </div>
+                        <p class="item-desc">
+                            Troubleshooting, database patches, and PHP codebase repairs for the existing community portal (`portal.oasisresort.ca`). Fixed Block 548/467 content issues, repaired broken navigation menus, suppressed public social blocks, corrected document listing bugs, and reinstalled the community calendar module.
+                        </p>
+                    </td>
+                    <td style="text-align: right; color: var(--text-light);">12 hrs @ $80</td>
+                    <td class="amount">
+                        <span class="strike-price">$960.00</span>
+                        <span style="color: var(--success);">$0.00</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div class="item-title">
+                            <span>VPS Email Server Installation & Configuration</span>
+                            <span class="badge badge-free">In-Kind</span>
+                        </div>
+                        <p class="item-desc">
+                            Installed and configured a complete mail server stack (Postfix SMTP, Dovecot IMAP/POP3, OpenDKIM, and Roundcube Webmail) on the GoDaddy VPS. Troubleshed and resolved MariaDB root socket authentication and schema import issues to initialize the Roundcube database.
+                        </p>
+                    </td>
+                    <td style="text-align: right; color: var(--text-light);">8 hrs @ $80</td>
+                    <td class="amount">
+                        <span class="strike-price">$640.00</span>
+                        <span style="color: var(--success);">$0.00</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div class="item-title">
+                            <span>Creative Direction: WebGL Asset Optimization & Animation</span>
+                            <span class="badge badge-free">Free</span>
+                        </div>
+                        <p class="item-desc">
+                            Import, optimization, and compression of the 20.6MB resort model. Sourced, configured, and integrated the animated flying falcon GLB model. Developed custom scroll-bound WebGL camera pathing and cloud rendering effects.
+                        </p>
+                    </td>
+                    <td style="text-align: right; color: var(--text-light);">6 hrs @ $80</td>
+                    <td class="amount">
+                        <span class="strike-price">$480.00</span>
+                        <span style="color: var(--success);">$0.00</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div class="item-title">
+                            <span>SSL/TLS Certificate Provisioning & HTTPS Setup</span>
+                            <span class="badge badge-free">In-Kind</span>
+                        </div>
+                        <p class="item-desc">
+                            Installed Certbot and provisioned Let's Encrypt SSL/TLS certificates for the main domain (`oasisresort.ca`), the `www` subdomain, the owner portal (`portal.oasisresort.ca`), and the mail server (`mail.oasisresort.ca`). Configured automatic HTTPS redirection in Nginx, resolved SSL version/cipher mismatch errors, and updated Postfix and Dovecot mail daemons.
+                        </p>
+                    </td>
+                    <td style="text-align: right; color: var(--text-light);">3 hrs @ $80</td>
+                    <td class="amount">
+                        <span class="strike-price">$240.00</span>
+                        <span style="color: var(--success);">$0.00</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div class="item-title">
+                            <span>Comprehensive Codebase Sanitization & Legacy Purge</span>
+                            <span class="badge badge-free">Free</span>
+                        </div>
+                        <p class="item-desc">
+                            Manual security audit and removal of 56 orphan/diagnostic scripts (PHP, Python, test HTML files) and dead Shopify templates. Refactored Next.js configurations to ensure a clean, secure, and lightweight final handoff.
+                        </p>
+                    </td>
+                    <td style="text-align: right; color: var(--text-light);">4 hrs @ $80</td>
+                    <td class="amount">
+                        <span class="strike-price">$320.00</span>
+                        <span style="color: var(--success);">$0.00</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="totals-section">
+            <div class="warranty-card">
+                <h4>Warranty & Support Terms</h4>
+                <ul>
+                    <li><strong>90-Day Bug Warranty:</strong> Complimentary bug hunting and fixing for 90 days from project completion (valid until September 25, 2026). Subsequent maintenance will be billed at the standard rate of <strong>$80.00/hour</strong>.</li>
+                    <li><strong>1-Year Security Updates:</strong> Complimentary security patches and package updates for 1 full year (valid until June 27, 2027).</li>
+                </ul>
+            </div>
+            <div class="totals">
+                <table class="totals-table">
+                    <tr>
+                        <td style="text-align: right; color: var(--text-light); padding-right: 0;">Gross Project Value:</td>
+                        <td style="text-align: right; font-weight: 600; width: 100px;">$5,440.00</td>
+                    </tr>
+                    <tr class="discount">
+                        <td style="text-align: right; padding-right: 0;">In-Kind & Complimentary:</td>
+                        <td style="text-align: right;">-$2,640.00</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: right; color: var(--text-light); padding-right: 0;">Tax:</td>
+                        <td style="text-align: right; font-weight: 600;">$0.00</td>
+                    </tr>
+                    <tr class="grand-total">
+                        <td style="text-align: right; padding-right: 0; padding-top: 16px;">Total Due:</td>
+                        <td style="text-align: right; padding-top: 16px;">$2,800.00</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="payment-instructions">
+            <div class="payment-method">
+                <h4>Option 1: Interac e-Transfer</h4>
+                <p>Please send e-Transfers to:</p>
+                <p><strong>jeyapal.c@gmail.com</strong></p>
+            </div>
+            <div class="payment-method">
+                <h4>Option 2: Mail Cheque</h4>
+                <p>Please make cheques payable to <strong>Charles Jeyapal</strong> and mail to:</p>
+                <p><strong>#17 303 171 Street<br>Surrey, BC V3Z 9P4</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="actions">
+        <a href="https://invoice.stripe.com/i/acct_1Tn1JTPJciYM51nh/live_YWNjdF8xVG4xSlRQSmNpWU01MW5oLF9VbWFmaHFYM2F5cFQ2a0lvS2NOR2ZIWmMzU2V2OFphLDE3MzEyODIxOQ0200jaypJEtv?s=db" target="_blank" class="btn btn-stripe">
+            Pay with Credit Card (Stripe)
+        </a>
+        <button class="btn btn-secondary" onclick="window.print()">Print / Save as PDF</button>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Oasis Resort | Osoyoos BC</title>
+  <meta name="description" content="Oasis RV Resort — Osoyoos, BC."/>
+  <link rel="icon" href="/favicon.ico?favicon.0x3dzn~oxb6tn.ico" sizes="256x256" type="image/x-icon"/>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: #fdf4f2;
+      font-family: 'Inter', system-ui, sans-serif;
+      color: #1767f6;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+
+    .container {
+      background: #ffffff;
+      border: 1px solid rgba(23, 103, 246, 0.1);
+      border-radius: 12px;
+      padding: 60px 40px;
+      max-width: 680px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 16px 48px rgba(23, 103, 246, 0.04);
+    }
+
+    .eyebrow {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: rgba(23, 103, 246, 0.5);
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 2.8rem;
+      font-weight: 300;
+      color: #1767f6;
+      line-height: 1.2;
+      margin-bottom: 24px;
+    }
+
+    h1 em {
+      font-style: italic;
+      font-weight: 300;
+    }
+
+    .content-body {
+      font-size: 0.95rem;
+      color: rgba(23, 103, 246, 0.75);
+      line-height: 1.7;
+      margin-bottom: 40px;
+      text-align: left;
+    }
+
+    .content-body h2 {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 1.8rem;
+      font-weight: 400;
+      margin-top: 24px;
+      margin-bottom: 12px;
+      color: #1767f6;
+    }
+
+    .content-body p {
+      margin-bottom: 16px;
+    }
+
+    .content-body ul, .content-body ol {
+      margin-left: 20px;
+      margin-bottom: 20px;
+    }
+
+    .content-body li {
+      margin-bottom: 8px;
+    }
+
+    .btn-wrap {
+      text-align: center;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 32px;
+      background: #1767f6;
+      color: #ffffff;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      text-decoration: none;
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+
+    .btn:hover {
+      background: #1252d4;
+    }
+  </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var params = new URLSearchParams(window.location.search);
+      var page = params.get('page') || '';
+      var titles = {
+        'resort-info': 'Resort Information',
+        'bookings': 'Bookings',
+        'privacy': 'Privacy Policy'
+      };
+      var pageName = titles[page] || 'Page';
+      
+      var elEyebrow = document.getElementById('page-eyebrow');
+      var elHeading = document.getElementById('page-heading');
+      var elBody = document.getElementById('page-body');
+
+      if (elEyebrow) elEyebrow.textContent = pageName;
+
+      // Fetch dynamic content from Grav export
+      fetch('/data/page-' + page + '.json')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data && data.content) {
+            document.title = data.title + ' — Oasis Resort | Osoyoos BC';
+            if (elEyebrow) elEyebrow.textContent = data.title;
+            if (elHeading) elHeading.style.display = 'none'; // Hide "Coming Soon"
+            if (elBody) elBody.innerHTML = data.content;
+          } else {
+            showFallback();
+          }
+        })
+        .catch(function() {
+          showFallback();
+        });
+
+      function showFallback() {
+        document.title = pageName + ' — Coming Soon | Oasis Resort';
+        if (elHeading) elHeading.innerHTML = 'Coming <em>Soon</em>';
+        if (elBody) {
+          elBody.innerHTML = '<p style="text-align: center;">We are currently updating this section of our resort portal. Please check back soon or contact our site managers for assistance.</p>';
+        }
+      }
+    });
+  </script>
+</head>
+<body>
+  <div class="container">
+    <div class="eyebrow" id="page-eyebrow">Page</div>
+    <h1 id="page-heading">Loading...</h1>
+    <div class="content-body" id="page-body">
+      <!-- Dynamic Content Loaded Here -->
+    </div>
+    <div class="btn-wrap">
+      <a href="/" class="btn">Back to Home</a>
+    </div>
+  </div>
+</body>
+</html>

@@ -36,6 +36,9 @@ export function SidebarTree({
     if (lowerName === 'video' || lowerName === 'videos') {
       return <GlossyFolder color="pink" className={className} type="video" />;
     }
+    if (lowerName === 'trash') {
+      return <GlossyFolder color="slate" className={className} type="trash" />;
+    }
     
     return <GlossyFolder color="cyan" className={className} type="default" />;
   };
@@ -59,7 +62,9 @@ export function SidebarTree({
       
       {isExpanded && node.children && (
         <div className="ml-6 mt-1 space-y-1 border-l border-white/5 pl-2">
-          {node.children.map(child => (
+          {node.children
+            .filter(child => child.name.toLowerCase() !== 'trash')
+            .map(child => (
             child.type === 'folder' ? (
               <React.Fragment key={child.id}>
                 <SidebarTree 

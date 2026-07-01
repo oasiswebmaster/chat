@@ -1,0 +1,184 @@
+title: Oasis Resort Web Builder
+icon: edit
+
+tabs:
+  # ── 1. LISTINGS TAB ──
+  listings:
+    label: 📋 Listings
+    icon: list
+    columns:
+      - width: 1/2
+        sections:
+          sale_section:
+            type: fields
+            fields:
+              sale_cards:
+                label: 🏡 Sites For Sale
+                type: structure
+                empty: No sites for sale. Click "Add" to create one.
+                fields:
+                  lot_number:
+                    label: Lot Number
+                    type: text
+                    placeholder: e.g. Lot 301
+                    width: 1/2
+                  price:
+                    label: Price
+                    type: text
+                    placeholder: e.g. $189,000
+                    width: 1/2
+                  title:
+                    label: Title
+                    type: text
+                    placeholder: e.g. Lot 301 — Lakefront Premium
+                  lot_type:
+                    label: Lot Type
+                    type: text
+                    placeholder: e.g. Park Model + Arizona Room
+                    width: 1/2
+                  sqft:
+                    label: Size
+                    type: text
+                    placeholder: e.g. 400 sq ft
+                    width: 1/2
+                  image_url:
+                    label: Image URL
+                    type: text
+                    placeholder: e.g. /images/spots/pool.jpg
+                  href:
+                    label: Link URL
+                    type: text
+                    placeholder: e.g. https://oasisresort.ca/sites-for-sale/
+                  status:
+                    label: Status
+                    type: select
+                    default: active
+                    options:
+                      active: Active (Visible)
+                      hidden: Hidden
+                    width: 1/2
+                  description:
+                    label: Description
+                    type: textarea
+                    buttons: false
+      - width: 1/2
+        sections:
+          rental_section:
+            type: fields
+            fields:
+              rental_cards:
+                label: 🔑 Sites For Rent
+                type: structure
+                empty: No sites for rent. Click "Add" to create one.
+                fields:
+                  lot_number:
+                    label: Site Number
+                    type: text
+                    placeholder: e.g. Site 305
+                    width: 1/2
+                  price:
+                    label: Price
+                    type: text
+                    placeholder: e.g. $195/night
+                    width: 1/2
+                  title:
+                    label: Title
+                    type: text
+                    placeholder: e.g. Site 305 — Beachfront
+                  lot_type:
+                    label: Site Type
+                    type: text
+                    placeholder: e.g. Full Hook-Up RV Site
+                    width: 1/2
+                  sqft:
+                    label: Size
+                    type: text
+                    placeholder: e.g. 350 sq ft
+                    width: 1/2
+                  image_url:
+                    label: Image URL
+                    type: text
+                    placeholder: e.g. /images/spots/beach.jpg
+                  href:
+                    label: Link URL
+                    type: text
+                    placeholder: e.g. https://oasisresort.ca/sites-for-rent/
+                  status:
+                    label: Status
+                    type: select
+                    default: active
+                    options:
+                      active: Active (Visible)
+                      hidden: Hidden
+                    width: 1/2
+                  description:
+                    label: Description
+                    type: textarea
+                    buttons: false
+
+  # ── 2. SITE CONTENT TAB ──
+  site_content:
+    label: 🏠 Site Content
+    icon: home
+    columns:
+      - width: 1/2
+        sections:
+          managers:
+            type: fields
+            fields:
+              manager_name:
+                label: On Site Manager Name(s)
+                type: text
+                placeholder: e.g. Janet & Tim Pearson
+              manager_phone:
+                label: Phone Number
+                type: text
+                placeholder: e.g. 778-437-2336
+                width: 1/2
+              manager_email:
+                label: Email Address
+                type: text
+                placeholder: e.g. managers@oasisresort.ca
+                width: 1/2
+      - width: 1/2
+        sections:
+          address:
+            type: fields
+            fields:
+              address_line1:
+                label: Address Line 1
+                type: text
+                placeholder: e.g. 2615 Lakeshore Dr
+              address_line2:
+                label: Address Line 2
+                type: text
+                placeholder: e.g. Osoyoos, BC V0H 1V6
+
+  # ── 3. EMERGENCY ALERT TAB ──
+  emergency_alert:
+    label: 🚨 Emergency Alert
+    icon: alert
+    fields:
+      alert_active:
+        label: Alert Status
+        type: toggle
+        text:
+          true: 🔴 Alert is LIVE on the website
+          false: ⚪ Alert is OFF
+      alert_severity:
+        label: Severity Level
+        type: select
+        default: warning
+        options:
+          warning: ⚠️ Warning (Amber)
+          critical: 🔴 Critical (Red)
+        width: 1/3
+      alert_headline:
+        label: Alert Headline
+        type: text
+        placeholder: e.g. ⚠️ RESORT CLOSURE NOTICE
+      alert_message:
+        label: Alert Message
+        type: textarea
+        placeholder: e.g. The Oasis is shut down this weekend due to forest fire warning...
+        buttons: false

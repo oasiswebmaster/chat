@@ -1,11 +1,11 @@
-export type FolderIconType = 'home' | 'documents' | 'images' | 'video' | 'default';
+export type FolderIconType = 'home' | 'documents' | 'images' | 'video' | 'trash' | 'default';
 
 export const GlossyFolder = ({ 
   color = 'blue', 
   className = '', 
   type = 'default' 
 }: { 
-  color?: 'blue' | 'purple' | 'cyan' | 'pink' | 'emerald', 
+  color?: 'blue' | 'purple' | 'cyan' | 'pink' | 'emerald' | 'slate', 
   className?: string, 
   type?: FolderIconType 
 }) => {
@@ -15,6 +15,7 @@ export const GlossyFolder = ({
     emerald: { c1: '#34d399', c2: '#059669', shadow: 'rgba(5, 150, 105, 0.4)' },
     pink: { c1: '#f472b6', c2: '#be185d', shadow: 'rgba(190, 24, 93, 0.4)' },
     cyan: { c1: '#22d3ee', c2: '#0891b2', shadow: 'rgba(8, 145, 178, 0.4)' },
+    slate: { c1: '#94a3b8', c2: '#475569', shadow: 'rgba(71, 85, 105, 0.4)' },
   };
   
   const { c1, c2, shadow } = themes[color];
@@ -47,6 +48,9 @@ export const GlossyFolder = ({
                 )}
                 {type === 'video' && (
                   <path d="M18 3v2h-2V3H8v2H6V3H4v18h2v-2h2v2h8v-2h2v2h2V3h-2zM8 17H6v-2h2v2zm0-4H6v-2h2v2zm0-4H6V7h2v2zm10 8h-2v-2h2v2zm0-4h-2v-2h2v2zm0-4h-2V7h2v2z" />
+                )}
+                {type === 'trash' && (
+                  <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
                 )}
               </g>
             )}

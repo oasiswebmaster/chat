@@ -1,0 +1,99 @@
+# ═══════════════════════════════════════════════════════════════
+#  Apache Configuration — The Oasis RV Resort
+#  For GoDaddy cPanel (shared hosting) deployment.
+#  Place this file in the public_html root alongside index.html.
+# ═══════════════════════════════════════════════════════════════
+
+
+# ─── Enable Rewrite Engine ───
+
+RewriteEngine On
+
+
+# ─── HTTPS Redirect (uncomment when SSL is active) ───
+
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+
+# ─── Clean URL Routing ───
+# Serve /admin → /admin.html, /cabin-selector → /cabin-selector.html, etc.
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{DOCUMENT_ROOT}/%{REQUEST_URI}.html -f
+RewriteRule ^(.*)$ /$1.html [L]
+
+
+# ─── Custom 404 ───
+
+ErrorDocument 404 /404.html
+
+
+# ─── Compression (Gzip) ───
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html
+  AddOutputFilterByType DEFLATE text/css
+  AddOutputFilterByType DEFLATE application/javascript
+  AddOutputFilterByType DEFLATE application/json
+  AddOutputFilterByType DEFLATE image/svg+xml
+  AddOutputFilterByType DEFLATE application/font-woff
+  AddOutputFilterByType DEFLATE font/ttf
+</IfModule>
+
+
+# ─── Browser Caching ───
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+
+  # HTML — short cache (content may change)
+  ExpiresByType text/html "access plus 1 hour"
+
+  # CSS & JS — long cache (filenames are content-hashed)
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+
+  # Images — long cache
+  ExpiresByType image/jpeg "access plus 6 months"
+  ExpiresByType image/png "access plus 6 months"
+  ExpiresByType image/svg+xml "access plus 6 months"
+
+  # Fonts — long cache
+  ExpiresByType font/ttf "access plus 1 year"
+  ExpiresByType font/woff "access plus 1 year"
+  ExpiresByType font/woff2 "access plus 1 year"
+
+  # 3D Models — long cache
+  ExpiresByType model/gltf-binary "access plus 1 year"
+  ExpiresByType application/octet-stream "access plus 6 months"
+
+  # JSON data — moderate cache
+  ExpiresByType application/json "access plus 1 hour"
+</IfModule>
+
+
+# ─── Security Headers ───
+
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "DENY"
+  Header set X-XSS-Protection "1; mode=block"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+
+# ─── CORS for Fonts & Models ───
+
+<FilesMatch "\.(ttf|woff|woff2|glb|gltf|bin)$">
+  <IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+  </IfModule>
+</FilesMatch>
+
+
+# ─── MIME Types for 3D Assets ───
+
+AddType model/gltf-binary .glb
+AddType model/gltf+json .gltf

@@ -31,16 +31,75 @@ export const portalApi = {
       method: 'POST',
       body: JSON.stringify({ parentId, name }),
     }),
-  upload: (parentId: string, files: File[]) => {
+  upload: (parentId: string, files: File[], onProgress?: (pct: number) => void) => {
     const formData = new FormData();
     formData.append('parentId', parentId);
     files.forEach((file) => formData.append('files[]', file));
-    return request<{ ok: true; root: FileSystemNode }>('/upload.php', { method: 'POST', body: formData });
+
+    return new Promise<{ ok: true; root: FileSystemNode }>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${API_BASE}/upload.php`);
+      xhr.withCredentials = true;
+
+      if (xhr.upload && onProgress) {
+        xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable) {
+            const pct = Math.round((e.loaded / e.total) * 100);
+            onProgress(pct);
+          }
+        });
+      }
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            if (data.ok !== false) {
+              resolve(data);
+            } else {
+              reject(new Error(data.error || 'Upload failed'));
+            }
+          } catch (e) {
+            reject(new Error('Invalid response'));
+          }
+        } else {
+          reject(new Error(`HTTP error: ${xhr.status}`));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network error'));
+      xhr.send(formData);
+    });
   },
+  rename: (id: string, newName: string) =>
+    request<{ ok: true; root: FileSystemNode }>('/rename.php', {
+      method: 'POST',
+      body: JSON.stringify({ id, newName }),
+    }),
   remove: (id: string) =>
     request<{ ok: true; root: FileSystemNode }>('/delete.php', {
       method: 'POST',
       body: JSON.stringify({ id }),
+    }),
+  restore: (id: string) =>
+    request<{ ok: true; root: FileSystemNode }>('/restore.php', {
+      method: 'POST',
+      body: JSON.stringify({ id }),
+    }),
+  diskspace: () => request<{ ok: true; diskspace: any }>('/diskspace.php'),
+  submitDoc: (name: string, email: string, message: string, file: File) => {
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('email', email);
+    formData.append('message', message);
+    formData.append('file', file);
+    return request<{ ok: true; message: string }>('/submit_doc.php', { method: 'POST', body: formData });
+  },
+  getChatMessages: () => request<{ ok: true; messages: any[] }>('/chat.php'),
+  sendChatMessage: (message: string) =>
+    request<{ ok: true; success: boolean }>('/chat.php', {
+      method: 'POST',
+      body: JSON.stringify({ message }),
     }),
   downloadUrl: (id: string) => `${API_BASE}/download.php?id=${encodeURIComponent(id)}`,
 };

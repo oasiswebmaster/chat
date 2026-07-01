@@ -1,0 +1,96 @@
+{
+  "sale": [
+    {
+      "id": 1,
+      "lot_number": "Lot 301",
+      "title": "Lot 301 — Lakefront Premium",
+      "price": "$189,000",
+      "lot_type": "Park Model + Arizona Room",
+      "sqft": "400 sq ft",
+      "description": "Prime lakefront lot with mature landscaping, covered deck, and unobstructed water views. Fully serviced — electric, sewer, water, cable.",
+      "image_url": "/images/spots/pool.jpg",
+      "href": "https://oasisresort.ca/sites-for-sale/",
+      "status": "active",
+      "images": [
+        "/images/spots/pool.jpg"
+      ]
+    },
+    {
+      "id": 2,
+      "lot_number": "Lot 315",
+      "title": "Lot 315 — Garden View",
+      "price": "$145,000",
+      "lot_type": "Park Model + Deck",
+      "sqft": "320 sq ft",
+      "description": "Quiet interior lot surrounded by beautiful mature trees. Concrete pad, full services, and a private hedged patio area.",
+      "image_url": "/images/spots/clubhouse.png",
+      "href": "https://oasisresort.ca/sites-for-sale/",
+      "status": "active",
+      "images": [
+        "/images/spots/clubhouse.png"
+      ]
+    },
+    {
+      "id": 3,
+      "lot_number": "Lot 328",
+      "title": "Lot 328 — Pool Adjacent",
+      "price": "$165,000",
+      "lot_type": "RV Lot + Landscaped Pad",
+      "sqft": "280 sq ft",
+      "description": "Steps from the heated saltwater pool and spa. Corner lot with extra space, paved roads, and 24-hour gated security.",
+      "image_url": "/images/spots/spa.jpg",
+      "href": "https://oasisresort.ca/sites-for-sale/",
+      "status": "active",
+      "images": [
+        "/images/spots/spa.jpg"
+      ]
+    }
+  ],
+  "rental": [
+    {
+      "id": 101,
+      "lot_number": "Site 305",
+      "title": "Site 305 — Beachfront",
+      "price": "$195/night",
+      "lot_type": "Full Hook-Up RV Site",
+      "sqft": "350 sq ft",
+      "description": "Premier beachfront site with direct lake access, full electric, sewer, water, cable. Concrete pad with mature shade trees.",
+      "image_url": "/images/spots/beach.jpg",
+      "href": "https://oasisresort.ca/sites-for-rent/",
+      "status": "active",
+      "images": [
+        "/images/spots/beach.jpg"
+      ]
+    },
+    {
+      "id": 102,
+      "lot_number": "Site 314",
+      "title": "Site 314 — Pool View",
+      "price": "$175/night",
+      "lot_type": "Full Hook-Up RV Site",
+      "sqft": "300 sq ft",
+      "description": "Steps from the heated saltwater pool and hot tub. Quiet interior position with paved road access and landscaped hedging.",
+      "image_url": "/images/spots/pool.jpg",
+      "href": "https://oasisresort.ca/sites-for-rent/",
+      "status": "active",
+      "images": [
+        "/images/spots/pool.jpg"
+      ]
+    },
+    {
+      "id": 103,
+      "lot_number": "Site 331",
+      "title": "Site 331 — Garden Retreat",
+      "price": "$155/night",
+      "lot_type": "Full Hook-Up RV Site",
+      "sqft": "280 sq ft",
+      "description": "Peaceful garden-view site surrounded by mature trees. Full services included. Walking distance to club hall and playground.",
+      "image_url": "/images/spots/clubhouse.png",
+      "href": "https://oasisresort.ca/sites-for-rent/",
+      "status": "active",
+      "images": [
+        "/images/spots/clubhouse.png"
+      ]
+    }
+  ]
+}

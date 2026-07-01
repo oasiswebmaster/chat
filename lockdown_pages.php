@@ -25,18 +25,12 @@ $db->query("UPDATE `sys_options` SET `value` = '' WHERE `name` = 'bx_events_enab
 echo "Updated guest calendar option settings.\n";
 
 echo "Clearing UNA DB and template caches...\n";
-// Clear DB cache tables using raw PDO
-try {
-    $pdo = new PDO("mysql:host=localhost;dbname=una_cms", "una", "UnaSecure2026!");
-    $s = $pdo->query("SHOW TABLES LIKE '%cache%'");
-    $tables = $s->fetchAll(PDO::FETCH_COLUMN);
-    foreach ($tables as $table) {
-        $pdo->exec("DELETE FROM `$table` WHERE 1");
-    }
-    echo "All database cache tables cleared!\n";
-} catch (Exception $e) {
-    echo "Database cache clear failed: " . $e->getMessage() . "\n";
+$oDb = BxDolDb::getInstance();
+$aTables = $oDb->getColumn("SHOW TABLES LIKE '%cache%'");
+foreach ($aTables as $sTable) {
+    $oDb->query("DELETE FROM `$sTable` WHERE 1");
 }
+echo "All database cache tables cleared!\n";
 
 // Clear files cache
 @shell_exec('rm -rf /var/www/una/cache/* /var/www/una/cache_public/* 2>/dev/null');

@@ -26,4 +26,6 @@ export interface PortalSession {
   authenticated: boolean;
   admin: boolean;
   user?: string;
+  name?: string;
+  email?: string;
 }
