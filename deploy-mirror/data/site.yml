@@ -182,3 +182,13 @@ tabs:
         type: textarea
         placeholder: e.g. The Oasis is shut down this weekend due to forest fire warning...
         buttons: false
+
+  # ── 4. PAGES TAB ──
+  pages:
+    label: 📄 Pages
+    icon: document
+    sections:
+      pages_section:
+        type: pages
+        create: false
+        template: default

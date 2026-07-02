@@ -81,6 +81,20 @@ return [
                     json_encode($alertData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
                 );
             }
+
+            // 2. Sync Subpages (Resort Info, Bookings, Privacy, Sale)
+            $slug = $newPage->slug();
+            if (in_array($slug, ['resort-info', 'bookings', 'privacy', 'sale'])) {
+                $pageData = [
+                    'title' => $newPage->title()->value(),
+                    'content' => $newPage->text()->kt()->value()
+                ];
+
+                @file_put_contents(
+                    "/var/www/oasis-frontend/data/page-{$slug}.json",
+                    json_encode($pageData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+                );
+            }
         }
     ]
 ];
