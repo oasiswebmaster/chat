@@ -27,10 +27,10 @@ src/                    Source code (admin editor)
 
 This is a static site — no server-side rendering, no database, no build step required.
 
-**To deploy:** Upload the contents of `deploy-mirror/` to your hosting provider's public directory.
-
-- **GoDaddy cPanel:** Upload to `public_html/`
-- **Netlify:** `npx netlify-cli deploy --prod --dir=deploy-mirror`
+- **GoDaddy VPS:** Deploy changes by pushing to the GitHub repository (which mirrors to the production server) or copy files directly using SCP:
+  ```bash
+  scp -i ~/.ssh/id_ed25519 -r deploy-mirror/* oasisresort@68.178.203.109:/var/www/oasis-frontend/
+  ```
 
 ## Admin
 
