@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-$allowed_keys = ['cards', 'site', 'alert', 'pages', 'navigation'];
+$allowed_keys = ['cards', 'site', 'alert', 'pages', 'navigation', 'map', 'about'];
 $key = isset($_GET['key']) ? $_GET['key'] : '';
 
 if (!in_array($key, $allowed_keys)) {
@@ -31,7 +31,9 @@ $file_map = [
     'site'       => __DIR__ . '/../data/site-config.json',
     'alert'      => __DIR__ . '/../data/alert.json',
     'pages'      => __DIR__ . '/../data/pages.json',
-    'navigation' => __DIR__ . '/../data/navigation.json'
+    'navigation' => __DIR__ . '/../data/navigation.json',
+    'map'        => __DIR__ . '/../data/map-config.json',
+    'about'      => __DIR__ . '/../data/about-config.json'
 ];
 
 $file_path = $file_map[$key];
@@ -69,6 +71,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 'address_line1' => '2615 Lakeshore Dr',
                 'address_line2' => 'Osoyoos, BC V0H 1V6'
             ];
+        } else if ($key === 'map') {
+            $default = ['spots' => []];
+        } else if ($key === 'about') {
+            $default = ['eyebrow' => '', 'heading' => '', 'subtitle' => '', 'body' => ''];
         } else {
             $default = [
                 'active' => false,

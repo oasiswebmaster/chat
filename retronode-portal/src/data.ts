@@ -49,6 +49,31 @@ export const rootFolder: FileSystemNode = {
           ]
         },
         {
+          id: 'rules',
+          name: 'Rules',
+          type: 'folder',
+          size: '',
+          updatedAt: '2026-08-02 09:45',
+          children: [
+            {
+              id: 'bylaws_doc',
+              name: 'OASIS-RV-RESORT-OWNERS-ASSOCIATION-BYLAWS.pdf',
+              type: 'document',
+              size: '241.4 KB',
+              updatedAt: '2026-08-02 09:45',
+              content: 'PDF Document: OASIS-RV-RESORT-OWNERS-ASSOCIATION-BYLAWS.pdf\n[Download request would be routed to /data/bylaws.pdf]'
+            },
+            {
+              id: 'rules_doc',
+              name: 'Oasis-RV-Resort-Rules-and-Regulations.pdf',
+              type: 'document',
+              size: '185.0 KB',
+              updatedAt: '2026-05-12 17:55',
+              content: 'PDF Document: Oasis-RV-Resort-Rules-and-Regulations.pdf\n[Download request would be routed to /data/rules.pdf]'
+            }
+          ]
+        },
+        {
           id: 'financial_statements',
           name: 'Financial-Statements',
           type: 'folder',

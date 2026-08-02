@@ -17,6 +17,8 @@
     cards: {sale:[],rental:[]},
     pages: {},
     navigation: [],
+    about: {eyebrow:'',heading:'',subtitle:'',body:''},
+    map: {spots:[]},
     tab: 0, cardsTab: 'sale', dirty: {}
   };
 
@@ -173,7 +175,8 @@
       {label:'Listings'},
       {label:'Site Content'},
       {label:'Emergency Alert'},
-      {label:'Pages & Links'}
+      {label:'Pages & Links'},
+      {label:'Map Hotspots'}
     ];
     var tabBar = document.createElement('div'); tabBar.className = 'vb-tabs';
     tabs.forEach(function(t,i){
@@ -232,6 +235,9 @@
     if (idx === 3) {
       renderPagesTab();
     }
+    if (idx === 4) {
+      renderMapTab();
+    }
     renderPreview();
   }
 
@@ -286,6 +292,12 @@
         <div class="vb-f"><label>Street</label><input id="f-addr1" type="text" placeholder="2615 Lakeshore Dr"></div>
         <div class="vb-f"><label>City / Province / Postal</label><input id="f-addr2" type="text" placeholder="Osoyoos, BC V0H 1V6"></div>
       </div>
+      <div class="vb-card"><h3>About The Oasis <span class="badge" style="background:rgba(23,103,246,.15);color:#1767f6">Homepage</span></h3>
+        <div class="vb-f"><label>Section Eyebrow</label><input id="f-about-eyebrow" type="text" placeholder="e.g. About The Oasis"></div>
+        <div class="vb-f"><label>Section Heading</label><input id="f-about-heading" type="text" placeholder="e.g. The Oasis RV Resort"></div>
+        <div class="vb-f"><label>Booking Subtitle (leave blank to hide)</label><input id="f-about-subtitle" type="text" placeholder="Shown under Your Piece of Paradise"></div>
+        <div class="vb-f"><label>About Body Text</label><textarea id="f-about-body" style="min-height:140px" placeholder="Resort description..."></textarea></div>
+      </div>
       <div class="vb-actions"><button class="vb-btn vb-pub" id="pub-site">Publish Site Content</button></div>
     `;
     ed.appendChild(sec1);
@@ -319,6 +331,10 @@
     var sec3 = document.createElement('div'); sec3.className = 'vb-sec'; sec3.id = 'sec-pages';
     ed.appendChild(sec3);
 
+    /* ── 5. MAP HOTSPOTS ── */
+    var sec4 = document.createElement('div'); sec4.className = 'vb-sec'; sec4.id = 'sec-map';
+    ed.appendChild(sec4);
+
     /* ── Bind events ── */
     setTimeout(bindEvents, 100);
   }
@@ -329,6 +345,12 @@
     ['f-mgr-name','f-mgr-phone','f-mgr-email','f-addr1','f-addr2'].forEach(function(id){
       var el = document.getElementById(id);
       if(el) el.addEventListener('input', function(){ syncSiteState(); renderPreview(); });
+    });
+
+    /* About fields → live preview */
+    ['f-about-eyebrow','f-about-heading','f-about-subtitle','f-about-body'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.addEventListener('input', function(){ syncAboutState(); renderPreview(); });
     });
 
     /* Alert fields → live preview */
@@ -354,7 +376,11 @@
     var pubSite = document.getElementById('pub-site');
     if(pubSite) pubSite.addEventListener('click', function(){
       syncSiteState();
-      writeBin('site', S.site).then(function(){toast('Site content published! Live for all visitors.')}).catch(function(){toast('Failed to publish','err')});
+      syncAboutState();
+      Promise.all([
+        writeBin('site', S.site),
+        writeBin('about', S.about)
+      ]).then(function(){toast('Site content & about text published!')}).catch(function(){toast('Failed to publish','err')});
     });
     var pubAlert = document.getElementById('pub-alert');
     if(pubAlert) pubAlert.addEventListener('click', function(){
@@ -372,6 +398,7 @@
     /* Populate fields with loaded data */
     populateSiteFields();
     populateAlertFields();
+    populateAboutFields();
     renderListings();
   }
 
@@ -394,6 +421,66 @@
     var set=function(id,v){var e=document.getElementById(id);if(e){if(e.type==='checkbox')e.checked=!!v;else e.value=v||''}};
     set('f-alert-active',a.active);set('f-alert-sev',a.severity);set('f-alert-head',a.headline);set('f-alert-msg',a.message);
     var cb=document.getElementById('f-alert-active');if(cb)cb.dispatchEvent(new Event('change'));
+  }
+
+  function syncAboutState(){
+    var g=function(id){var e=document.getElementById(id);return e?e.value:''};
+    S.about={eyebrow:g('f-about-eyebrow'),heading:g('f-about-heading'),subtitle:g('f-about-subtitle'),body:g('f-about-body')};
+  }
+  function populateAboutFields(){
+    var a=S.about;
+    var set=function(id,v){var e=document.getElementById(id);if(e)e.value=v||''};
+    set('f-about-eyebrow',a.eyebrow);set('f-about-heading',a.heading);set('f-about-subtitle',a.subtitle);set('f-about-body',a.body);
+  }
+
+  /* ══════════════════════════════════════════════════ */
+  /*              MAP HOTSPOTS EDITOR                   */
+  /* ══════════════════════════════════════════════════ */
+  function renderMapTab() {
+    var sec = document.getElementById('sec-map');
+    if (!sec) return;
+    var html = '';
+    var spots = S.map.spots || [];
+    spots.forEach(function(spot, idx) {
+      html += '<div class="vb-card" style="border-left:3px solid '+(spot.visible!==false?'#16a34a':'rgba(255,255,255,.1)')+'">';
+      html += '<h3>'+esc(spot.name)+' <span class="badge" style="background:'+(spot.visible!==false?'rgba(22,163,74,.2)':'rgba(255,255,255,.06)')+';color:'+(spot.visible!==false?'#16a34a':'rgba(255,255,255,.35)')+'">'+(spot.visible!==false?'Visible':'Hidden')+'</span></h3>';
+      html += '<div class="vb-f"><label>Spot Name</label><input class="map-spot-name" data-idx="'+idx+'" value="'+esc(spot.name)+'"></div>';
+      html += '<div class="vb-f"><label>Description</label><textarea class="map-spot-desc" data-idx="'+idx+'" style="min-height:80px">'+esc(spot.description)+'</textarea></div>';
+      html += '<div class="vb-row">';
+      html += '<div class="vb-f"><label>Image URL</label><input class="map-spot-img" data-idx="'+idx+'" value="'+esc(spot.image)+'"></div>';
+      html += '<div class="vb-f" style="max-width:100px"><label>Visible</label><select class="map-spot-vis" data-idx="'+idx+'"><option value="true"'+(spot.visible!==false?' selected':'')+'>Yes</option><option value="false"'+(spot.visible===false?' selected':'')+'>No</option></select></div>';
+      html += '</div>';
+      html += '<div class="vb-row">';
+      html += '<div class="vb-f"><label>X Position (%)</label><input class="map-spot-x" data-idx="'+idx+'" value="'+(spot.x||0)+'" type="number" step="0.01"></div>';
+      html += '<div class="vb-f"><label>Y Position (%)</label><input class="map-spot-y" data-idx="'+idx+'" value="'+(spot.y||0)+'" type="number" step="0.01"></div>';
+      html += '</div>';
+      html += '</div>';
+    });
+    html += '<div class="vb-actions" style="margin-top:20px"><button class="vb-btn vb-pub" id="pub-map">Publish Map Hotspots</button></div>';
+    sec.innerHTML = html;
+
+    /* Bind map spot inputs */
+    sec.querySelectorAll('.map-spot-name').forEach(function(el){
+      el.addEventListener('input', function(){ S.map.spots[+el.dataset.idx].name = el.value; renderPreview(); });
+    });
+    sec.querySelectorAll('.map-spot-desc').forEach(function(el){
+      el.addEventListener('input', function(){ S.map.spots[+el.dataset.idx].description = el.value; renderPreview(); });
+    });
+    sec.querySelectorAll('.map-spot-img').forEach(function(el){
+      el.addEventListener('input', function(){ S.map.spots[+el.dataset.idx].image = el.value; renderPreview(); });
+    });
+    sec.querySelectorAll('.map-spot-vis').forEach(function(el){
+      el.addEventListener('change', function(){ S.map.spots[+el.dataset.idx].visible = el.value==='true'; renderMapTab(); renderPreview(); });
+    });
+    sec.querySelectorAll('.map-spot-x').forEach(function(el){
+      el.addEventListener('input', function(){ S.map.spots[+el.dataset.idx].x = parseFloat(el.value)||0; });
+    });
+    sec.querySelectorAll('.map-spot-y').forEach(function(el){
+      el.addEventListener('input', function(){ S.map.spots[+el.dataset.idx].y = parseFloat(el.value)||0; });
+    });
+    document.getElementById('pub-map').addEventListener('click', function(){
+      writeBin('map', S.map).then(function(){toast('Map hotspots published! Live for all visitors.')}).catch(function(){toast('Failed to publish','err')});
+    });
   }
 
   /* ══════════════════════════════════════════════════ */
@@ -698,6 +785,14 @@
       if(S.site.manager_email) html += '<a href="mailto:'+esc(S.site.manager_email)+'">'+esc(S.site.manager_email)+'</a>';
       if(!S.site.manager_name && !S.site.manager_phone) html += '<span style="color:#9ca3af;font-style:italic">Not set — fill in the fields to see preview</span>';
       html += '</div></div></div></div>';
+
+      /* About section preview */
+      html += '<div class="pvw-section" data-label="About The Oasis">';
+      html += '<div class="pvw-label">'+(esc(S.about.eyebrow)||'About')+'</div>';
+      html += '<div class="pvw-heading">'+(esc(S.about.heading)||'The Oasis RV Resort')+'</div>';
+      if(S.about.subtitle) html += '<p style="font-size:.9rem;color:#6b7280;font-style:italic;margin-bottom:12px">'+esc(S.about.subtitle)+'</p>';
+      html += '<div class="pvw-body"><p>'+(esc(S.about.body)||'<em style="color:#9ca3af">No body text — edit above</em>').replace(/\n/g,'</p><p>')+'</p></div>';
+      html += '</div>';
     }
 
     if(S.tab === 2) {
@@ -734,6 +829,19 @@
       }
     }
 
+    if(S.tab === 4) {
+      /* Map hotspots preview */
+      html += '<div class="pvw-section" data-label="Map Hotspot Preview">';
+      (S.map.spots || []).forEach(function(spot) {
+        if(spot.visible === false) return;
+        html += '<div style="display:flex;gap:12px;padding:12px;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:8px;align-items:center">';
+        html += '<img src="'+esc(spot.image)+'" style="width:64px;height:48px;object-fit:cover;border-radius:4px;background:#e5e7eb" onerror="this.style.background=\'#ddd\'">';
+        html += '<div style="flex:1;min-width:0"><h4 style="margin:0 0 4px;font-size:.8rem;font-weight:600;color:#1f2937">'+esc(spot.name)+'</h4>';
+        html += '<p style="margin:0;font-size:.7rem;color:#6b7280;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">'+esc(spot.description)+'</p></div></div>';
+      });
+      html += '</div>';
+    }
+
     pv.innerHTML = html;
   }
 
@@ -759,13 +867,15 @@
 
     showLoadingState();
 
-    Promise.all([readBin('cards'), readBin('site'), readBin('alert'), readBin('pages'), readBin('navigation')])
+    Promise.all([readBin('cards'), readBin('site'), readBin('alert'), readBin('pages'), readBin('navigation'), readBin('about'), readBin('map')])
       .then(function(r) {
         if(r[0]) S.cards = r[0];
         if(r[1]) S.site = r[1];
         if(r[2]) S.alert = r[2];
         if(r[3]) S.pages = r[3];
         if(r[4]) S.navigation = r[4];
+        if(r[5]) S.about = r[5];
+        if(r[6]) S.map = r[6];
         dataLoaded = true;
         
         // Clear loading state and build the full editor UI

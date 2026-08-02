@@ -8,7 +8,9 @@
   var BINS = {
     cards: 'cards',
     site: 'site',
-    alert: 'alert'
+    alert: 'alert',
+    about: 'about',
+    map: 'map'
   };
 
   function readBin(id) {
@@ -271,6 +273,171 @@
     }, FAILSAFE_MS);
   }
 
+  /* ── Apply About Config ── */
+  function applyAboutConfig(cfg) {
+    if (!cfg) return;
+    var el = document.querySelector('[class*="BookingSection"][class*="subtitle"]');
+    if (el) {
+      if (typeof cfg.subtitle === 'string' && cfg.subtitle.trim() !== '') {
+        el.textContent = cfg.subtitle;
+        el.style.display = '';
+      } else {
+        el.style.display = 'none';
+      }
+    }
+  }
+
+  /* ── Apply Map Config ── */
+  function applyMapConfig(cfg) {
+    if (!cfg || !cfg.spots || !cfg.spots.length) return;
+
+    /* Build a lookup: id → spot config */
+    var spotMap = {};
+    var newSpots = [];
+    var originalIds = ['pool', 'spa', 'beach', 'washrooms', 'clubhouse', 'playground', 'lounge'];
+
+    cfg.spots.forEach(function (s) {
+      spotMap[s.id] = s;
+      if (originalIds.indexOf(s.id) === -1) newSpots.push(s);
+    });
+
+    var attempts = 0;
+    var checkMap = setInterval(function () {
+      attempts++;
+      var spotBtns = document.querySelectorAll('[class*="IsometricMap-module"][class*="__spot"]');
+      var infoCards = document.querySelectorAll('[class*="IsometricMap-module"][class*="__infoCard"]');
+
+      /* Filter out child elements — only top-level spot buttons */
+      var realBtns = [];
+      spotBtns.forEach(function(b) {
+        if (b.tagName === 'BUTTON') realBtns.push(b);
+      });
+
+      if ((realBtns.length < 6 || infoCards.length < 6) && attempts < 100) return;
+      clearInterval(checkMap);
+      if (realBtns.length < 6 || infoCards.length < 6) return;
+
+      /* Spots in bundle order:
+         0=pool, 1=spa, 2=beach, 3=washrooms, 4=clubhouse, 5=playground, 6=lounge */
+      var origOrder = ['pool', 'spa', 'beach', 'washrooms', 'clubhouse', 'playground', 'lounge'];
+
+      var totalCount = Math.min(realBtns.length, origOrder.length);
+      for (var i = 0; i < totalCount; i++) {
+        var id = origOrder[i];
+        var sc = spotMap[id];
+        if (!sc) continue;
+
+        var btn = realBtns[i];
+        var card = infoCards[i];
+        if (!btn || !card) continue;
+
+        /* Update tooltip label */
+        var tooltip = btn.querySelector('[class*="spotTooltip"] span');
+        if (tooltip && sc.name) tooltip.textContent = sc.name;
+
+        /* Update info card */
+        var label = card.querySelector('[class*="infoCardLabel"]');
+        if (label && sc.name) label.textContent = sc.name;
+
+        var body = card.querySelector('[class*="infoCardBody"]');
+        if (body && sc.description) body.textContent = sc.description;
+
+        if (sc.image) {
+          var img = card.querySelector('[class*="infoCardImage"] img');
+          if (img) { img.src = sc.image; img.alt = sc.name; }
+        }
+
+        /* Reposition if coordinates changed */
+        if (sc.x !== undefined) btn.style.left = sc.x + '%';
+        if (sc.y !== undefined) btn.style.top = sc.y + '%';
+
+        /* Handle visibility */
+        if (sc.visible === false) {
+          btn.style.display = 'none';
+          card.style.display = 'none';
+        }
+      }
+
+      /* Inject NEW spots that don't exist in the original 6 */
+      if (newSpots.length > 0) {
+        var mapContainer = realBtns[0].parentNode;
+        var cardContainer = infoCards[0].parentNode;
+
+        newSpots.forEach(function(ns) {
+          if (ns.visible === false) return;
+
+          /* Clone a spot button */
+          var newBtn = realBtns[0].cloneNode(true);
+          newBtn.style.left = (ns.x || 50) + '%';
+          newBtn.style.top = (ns.y || 50) + '%';
+          newBtn.className = newBtn.className.replace(/spotActive[^\s]*/g, '');
+
+          var tt = newBtn.querySelector('[class*="spotTooltip"] span');
+          if (tt) tt.textContent = ns.name;
+
+          /* Clone an info card */
+          var newCard = infoCards[0].cloneNode(true);
+          newCard.className = newCard.className.replace(/infoCardVisible[^\s]*/g, '');
+
+          var nl = newCard.querySelector('[class*="infoCardLabel"]');
+          if (nl) nl.textContent = ns.name;
+
+          var nb = newCard.querySelector('[class*="infoCardBody"]');
+          if (nb) nb.textContent = ns.description;
+
+          if (ns.image) {
+            var ni = newCard.querySelector('[class*="infoCardImage"] img');
+            if (ni) { ni.src = ns.image; ni.alt = ns.name; }
+          }
+
+          /* Handle CTA link */
+          var ctaEl = newCard.querySelector('[class*="infoCardCta"]');
+          if (ns.cta && ns.cta.label) {
+            if (ctaEl) { ctaEl.textContent = ns.cta.label; ctaEl.href = ns.cta.href || '#'; }
+          } else if (ctaEl) {
+            ctaEl.remove();
+          }
+
+          /* Close button handler */
+          var closeBtn = newCard.querySelector('[class*="infoCardClose"]');
+          if (closeBtn) {
+            closeBtn.addEventListener('click', function () {
+              newCard.className = newCard.className.replace(/infoCardVisible[^\s]*/g, '');
+              newBtn.className = newBtn.className.replace(/spotActive[^\s]*/g, '');
+            });
+          }
+
+          /* Click handler to show/hide card */
+          newBtn.addEventListener('click', function () {
+            var visClass = '';
+            infoCards[0].className.split(/\s+/).forEach(function(c) {
+              if (c.indexOf('infoCardVisible') > -1) visClass = c;
+            });
+            var activeClass = '';
+            realBtns[0].className.split(/\s+/).forEach(function(c) {
+              if (c.indexOf('spotActive') > -1) activeClass = c;
+            });
+
+            /* Close all other cards */
+            document.querySelectorAll('[class*="IsometricMap-module"][class*="__infoCard"]').forEach(function(c) {
+              c.className = c.className.replace(new RegExp(visClass, 'g'), '').trim();
+            });
+            document.querySelectorAll('[class*="IsometricMap-module"][class*="__spot"]').forEach(function(b) {
+              if (b.tagName === 'BUTTON') b.className = b.className.replace(new RegExp(activeClass, 'g'), '').trim();
+            });
+
+            /* Toggle this card */
+            if (visClass) newCard.className = newCard.className.trim() + ' ' + visClass;
+            if (activeClass) newBtn.className = newBtn.className.trim() + ' ' + activeClass;
+          });
+
+          mapContainer.appendChild(newBtn);
+          cardContainer.appendChild(newCard);
+        });
+      }
+    }, 200);
+  }
+
   /* ── Init ── */
   function init() {
     // Start failsafe timer immediately
@@ -293,6 +460,8 @@
       readBin(BINS.alert).then(showAlert).catch(function () {});
       readBin(BINS.site).then(applySiteConfig).catch(function () {});
       readBin(BINS.cards).then(applyCardsConfig).catch(function () {});
+      readBin(BINS.about).then(applyAboutConfig).catch(function () {});
+      readBin(BINS.map).then(applyMapConfig).catch(function () {});
     }, 100);
   }
 

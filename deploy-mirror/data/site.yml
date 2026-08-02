@@ -153,6 +153,30 @@ tabs:
                 label: Address Line 2
                 type: text
                 placeholder: e.g. Osoyoos, BC V0H 1V6
+      - width: 1/1
+        sections:
+          about:
+            type: fields
+            fields:
+              about_eyebrow:
+                label: About Section Eyebrow
+                type: text
+                placeholder: e.g. About The Oasis
+                width: 1/2
+              about_heading:
+                label: About Section Heading
+                type: text
+                placeholder: e.g. The Oasis RV Resort
+                width: 1/2
+              about_subtitle:
+                label: Booking Subtitle (leave blank to hide)
+                type: text
+                placeholder: Shown under "Your Piece of Paradise"
+              about_body:
+                label: About Body Text
+                type: textarea
+                placeholder: Resort description shown on homepage...
+                buttons: false
 
   # ── 3. EMERGENCY ALERT TAB ──
   emergency_alert:
@@ -192,3 +216,53 @@ tabs:
         type: pages
         create: false
         template: default
+
+  # ── 5. MAP HOTSPOTS TAB ──
+  map_hotspots:
+    label: 🗺️ Map Hotspots
+    icon: map
+    fields:
+      map_spots:
+        label: Interactive Map Spots
+        type: structure
+        empty: No map spots defined. Click "Add" to create one.
+        fields:
+          spot_id:
+            label: Spot ID
+            type: text
+            placeholder: e.g. pool, spa, beach
+            width: 1/3
+          spot_name:
+            label: Display Name
+            type: text
+            placeholder: e.g. Heated Saltwater Pool
+            width: 2/3
+          spot_description:
+            label: Description
+            type: textarea
+            placeholder: Full description shown when visitor clicks this spot...
+            buttons: false
+          spot_image:
+            label: Image URL
+            type: text
+            placeholder: e.g. /images/spots/pool.jpg
+            width: 1/2
+          spot_visible:
+            label: Visible
+            type: toggle
+            default: true
+            text:
+              true: Visible on map
+              false: Hidden
+            width: 1/2
+          spot_x:
+            label: X Position (%)
+            type: number
+            step: 0.01
+            width: 1/4
+          spot_y:
+            label: Y Position (%)
+            type: number
+            step: 0.01
+            width: 1/4
+
