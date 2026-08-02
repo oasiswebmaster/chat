@@ -293,149 +293,80 @@
 
     /* Build a lookup: id → spot config */
     var spotMap = {};
-    var newSpots = [];
-    var originalIds = ['pool', 'spa', 'beach', 'washrooms', 'clubhouse', 'playground', 'lounge'];
-
     cfg.spots.forEach(function (s) {
       spotMap[s.id] = s;
-      if (originalIds.indexOf(s.id) === -1) newSpots.push(s);
     });
 
-    var attempts = 0;
-    var checkMap = setInterval(function () {
-      attempts++;
-      var spotBtns = document.querySelectorAll('[class*="IsometricMap-module"][class*="__spot"]');
-      var infoCards = document.querySelectorAll('[class*="IsometricMap-module"][class*="__infoCard"]');
+    function updateAllMapSpots() {
+      /* 1. Update IsometricMap (Overlay Map) */
+      var isoBtns = Array.prototype.filter.call(
+        document.querySelectorAll('[class*="IsometricMap-module"][class*="__spot"]'),
+        function (b) { return b.tagName === 'BUTTON'; }
+      );
+      var isoCards = document.querySelectorAll('[class*="IsometricMap-module"][class*="__infoCard"]');
 
-      /* Filter out child elements — only top-level spot buttons */
-      var realBtns = [];
-      spotBtns.forEach(function(b) {
-        if (b.tagName === 'BUTTON') realBtns.push(b);
-      });
+      if (isoBtns.length >= 6 && isoCards.length >= 6) {
+        var isoOrder = ['pool', 'spa', 'beach', 'washrooms', 'clubhouse', 'playground', 'lounge'];
+        var count = Math.min(isoBtns.length, isoOrder.length);
+        for (var i = 0; i < count; i++) {
+          var id = isoOrder[i];
+          var sc = spotMap[id];
+          if (!sc) continue;
 
-      if ((realBtns.length < 6 || infoCards.length < 6) && attempts < 100) return;
-      clearInterval(checkMap);
-      if (realBtns.length < 6 || infoCards.length < 6) return;
+          var btn = isoBtns[i];
+          var card = isoCards[i];
+          if (!btn || !card) continue;
 
-      /* Spots in bundle order:
-         0=pool, 1=spa, 2=beach, 3=washrooms, 4=clubhouse, 5=playground, 6=lounge */
-      var origOrder = ['pool', 'spa', 'beach', 'washrooms', 'clubhouse', 'playground', 'lounge'];
+          var tooltip = btn.querySelector('[class*="spotTooltip"] span');
+          if (tooltip && sc.name) tooltip.textContent = sc.name;
 
-      var totalCount = Math.min(realBtns.length, origOrder.length);
-      for (var i = 0; i < totalCount; i++) {
-        var id = origOrder[i];
-        var sc = spotMap[id];
-        if (!sc) continue;
+          var label = card.querySelector('[class*="infoCardLabel"]');
+          if (label && sc.name) label.textContent = sc.name;
 
-        var btn = realBtns[i];
-        var card = infoCards[i];
-        if (!btn || !card) continue;
+          var body = card.querySelector('[class*="infoCardBody"]');
+          if (body && sc.description) body.textContent = sc.description;
 
-        /* Update tooltip label */
-        var tooltip = btn.querySelector('[class*="spotTooltip"] span');
-        if (tooltip && sc.name) tooltip.textContent = sc.name;
+          if (sc.image) {
+            var img = card.querySelector('[class*="infoCardImage"] img');
+            if (img) { img.src = sc.image; img.alt = sc.name; }
+          }
 
-        /* Update info card */
-        var label = card.querySelector('[class*="infoCardLabel"]');
-        if (label && sc.name) label.textContent = sc.name;
+          if (sc.x !== undefined) btn.style.left = sc.x + '%';
+          if (sc.y !== undefined) btn.style.top = sc.y + '%';
 
-        var body = card.querySelector('[class*="infoCardBody"]');
-        if (body && sc.description) body.textContent = sc.description;
-
-        if (sc.image) {
-          var img = card.querySelector('[class*="infoCardImage"] img');
-          if (img) { img.src = sc.image; img.alt = sc.name; }
-        }
-
-        /* Reposition if coordinates changed */
-        if (sc.x !== undefined) btn.style.left = sc.x + '%';
-        if (sc.y !== undefined) btn.style.top = sc.y + '%';
-
-        /* Handle visibility */
-        if (sc.visible === false) {
-          btn.style.display = 'none';
-          card.style.display = 'none';
+          if (sc.visible === false) {
+            btn.style.display = 'none';
+            card.style.display = 'none';
+          }
         }
       }
 
-      /* Inject NEW spots that don't exist in the original 6 */
-      if (newSpots.length > 0) {
-        var mapContainer = realBtns[0].parentNode;
-        var cardContainer = infoCards[0].parentNode;
-
-        newSpots.forEach(function(ns) {
-          if (ns.visible === false) return;
-
-          /* Clone a spot button */
-          var newBtn = realBtns[0].cloneNode(true);
-          newBtn.style.left = (ns.x || 50) + '%';
-          newBtn.style.top = (ns.y || 50) + '%';
-          newBtn.className = newBtn.className.replace(/spotActive[^\s]*/g, '');
-
-          var tt = newBtn.querySelector('[class*="spotTooltip"] span');
-          if (tt) tt.textContent = ns.name;
-
-          /* Clone an info card */
-          var newCard = infoCards[0].cloneNode(true);
-          newCard.className = newCard.className.replace(/infoCardVisible[^\s]*/g, '');
-
-          var nl = newCard.querySelector('[class*="infoCardLabel"]');
-          if (nl) nl.textContent = ns.name;
-
-          var nb = newCard.querySelector('[class*="infoCardBody"]');
-          if (nb) nb.textContent = ns.description;
-
-          if (ns.image) {
-            var ni = newCard.querySelector('[class*="infoCardImage"] img');
-            if (ni) { ni.src = ns.image; ni.alt = ns.name; }
-          }
-
-          /* Handle CTA link */
-          var ctaEl = newCard.querySelector('[class*="infoCardCta"]');
-          if (ns.cta && ns.cta.label) {
-            if (ctaEl) { ctaEl.textContent = ns.cta.label; ctaEl.href = ns.cta.href || '#'; }
-          } else if (ctaEl) {
-            ctaEl.remove();
-          }
-
-          /* Close button handler */
-          var closeBtn = newCard.querySelector('[class*="infoCardClose"]');
-          if (closeBtn) {
-            closeBtn.addEventListener('click', function () {
-              newCard.className = newCard.className.replace(/infoCardVisible[^\s]*/g, '');
-              newBtn.className = newBtn.className.replace(/spotActive[^\s]*/g, '');
-            });
-          }
-
-          /* Click handler to show/hide card */
-          newBtn.addEventListener('click', function () {
-            var visClass = '';
-            infoCards[0].className.split(/\s+/).forEach(function(c) {
-              if (c.indexOf('infoCardVisible') > -1) visClass = c;
-            });
-            var activeClass = '';
-            realBtns[0].className.split(/\s+/).forEach(function(c) {
-              if (c.indexOf('spotActive') > -1) activeClass = c;
-            });
-
-            /* Close all other cards */
-            document.querySelectorAll('[class*="IsometricMap-module"][class*="__infoCard"]').forEach(function(c) {
-              c.className = c.className.replace(new RegExp(visClass, 'g'), '').trim();
-            });
-            document.querySelectorAll('[class*="IsometricMap-module"][class*="__spot"]').forEach(function(b) {
-              if (b.tagName === 'BUTTON') b.className = b.className.replace(new RegExp(activeClass, 'g'), '').trim();
-            });
-
-            /* Toggle this card */
-            if (visClass) newCard.className = newCard.className.trim() + ' ' + visClass;
-            if (activeClass) newBtn.className = newBtn.className.trim() + ' ' + activeClass;
-          });
-
-          mapContainer.appendChild(newBtn);
-          cardContainer.appendChild(newCard);
+      /* 2. Update MapSection (Homepage Scroll Map) */
+      var secSpots = document.querySelectorAll('[class*="MapSection-module"][class*="__mapSpot"]');
+      if (secSpots.length > 0) {
+        var secOrder = ['pool', 'spa', 'beach', 'washrooms', 'clubhouse', 'playground', 'lounge'];
+        secSpots.forEach(function (spotEl, idx) {
+          var sc = spotMap[secOrder[idx]];
+          if (!sc) return;
+          var tt = spotEl.querySelector('[class*="mapSpotTooltip"] span');
+          if (tt && sc.name) tt.textContent = sc.name;
         });
       }
-    }, 200);
+    }
+
+    // Run update immediately
+    updateAllMapSpots();
+
+    // Continuously check every 400ms for dynamically mounted maps
+    setInterval(updateAllMapSpots, 400);
+
+    // Also observe DOM mutations to catch React dynamic renders instantly
+    if (window.MutationObserver && document.body) {
+      var observer = new MutationObserver(function () {
+        updateAllMapSpots();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
   }
 
   /* ── Init ── */
