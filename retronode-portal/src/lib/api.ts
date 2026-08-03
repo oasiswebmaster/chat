@@ -76,6 +76,11 @@ export const portalApi = {
       method: 'POST',
       body: JSON.stringify({ id, newName }),
     }),
+  move: (sourceId: string, destParentId: string) =>
+    request<{ ok: true; root: FileSystemNode }>('/move.php', {
+      method: 'POST',
+      body: JSON.stringify({ sourceId, destParentId }),
+    }),
   remove: (id: string) =>
     request<{ ok: true; root: FileSystemNode }>('/delete.php', {
       method: 'POST',

@@ -43,6 +43,25 @@ export function SidebarTree({
     return <GlossyFolder color="cyan" className={className} type="default" />;
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const sourceId = e.dataTransfer.getData('text/plain');
+    if (!sourceId || sourceId === node.id) return;
+    
+    // Dispatch custom event to trigger move in App.tsx
+    const event = new CustomEvent('move-node', {
+      detail: { sourceId, destParentId: node.id }
+    });
+    window.dispatchEvent(event);
+  };
+
   return (
     <div className="ml-2 first:ml-0 font-sans text-base">
       <div
@@ -52,6 +71,8 @@ export function SidebarTree({
             : 'text-gray-300 hover:bg-white/10 font-medium'
         }`}
         onClick={() => onNavigate(myPath)}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
       >
         <div className={`opacity-70 ${isSelected ? 'text-white' : 'text-gray-500'}`}>
           {isExpanded ? <ChevronDown size={16} strokeWidth={2.5} /> : <ChevronRight size={16} strokeWidth={2.5} />}

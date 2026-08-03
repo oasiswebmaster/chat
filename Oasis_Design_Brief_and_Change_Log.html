@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Design Brief & Change Log - Oasis RV Resort</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+    :root {
+      --bg: #0b0f19;
+      --panel: #131b2e;
+      --border: #222f4c;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --accent: #38bdf8;
+      --success: #10b981;
+      --primary-font: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--primary-font);
+      line-height: 1.6;
+      padding: 60px 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .document-card {
+      background-color: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 50px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 30px;
+      margin-bottom: 40px;
+    }
+
+    header h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.025em;
+    }
+
+    header p {
+      color: var(--accent);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 4px;
+    }
+
+    .meta-info {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-bottom: 30px;
+    }
+
+    h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      margin: 35px 0 15px 0;
+      padding-bottom: 5px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h2::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 16px;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+
+    ul {
+      padding-left: 20px;
+      margin: 0 0 20px 0;
+    }
+
+    li {
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #d1d5db;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+    }
+
+    th {
+      text-align: left;
+      padding: 10px 12px;
+      color: var(--accent);
+      font-family: 'Outfit', sans-serif;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      vertical-align: top;
+      color: #d1d5db;
+    }
+
+    .badge {
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      display: inline-block;
+      margin-left: 6px;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 30px;
+    }
+
+    .btn {
+      text-decoration: none;
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      background-color: var(--primary);
+      border: 1px solid var(--border);
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.05);
+    }
+
+    .navigation-links {
+      display: flex;
+      gap: 15px;
+      margin-top: 30px;
+    }
+
+    .nav-btn {
+      text-decoration: none;
+      font-family: 'Outfit', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+
+    .nav-btn:hover, .nav-btn.active {
+      color: #fff;
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.05);
+    }
+
+    @media print {
+      body {
+        background: #fff;
+        color: #000;
+        padding: 0;
+      }
+      .document-card {
+        background: #fff;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+      }
+      header h1, h2, td, th {
+        color: #000;
+      }
+      .actions, .navigation-links {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="document-card">
+      <header>
+        <h1>Design Brief & Change Log</h1>
+        <p>Milestone Compliance & Adjustments Document</p>
+      </header>
+
+      <div class="meta-info">
+        <span><strong>Prepared By:</strong> @photon.alchemist (Charles Jeyapal)</span>
+        <span><strong>Date:</strong> July 2, 2026</span>
+      </div>
+
+      <h2>1. Original Scope & Agreement</h2>
+      <p style="font-size: 14px; color: #d1d5db; margin-bottom: 16px;">The contract amount of <strong>$2,800.00</strong> was defined for the design and deployment of the following core parameters:</p>
+      <ul>
+        <li><strong>Website Facelift:</strong> Responsive layout replacing the old WordPress site.</li>
+        <li><strong>Sites Sales and Rentals:</strong> Grid database cards displaying Buying/Renting lot listings.</li>
+        <li><strong>Media Area:</strong> Resource index for downloadable documents and forms.</li>
+        <li><strong>Social Events Calendar:</strong> Interactive calendar display for co-owners.</li>
+        <li><strong>Classified Ads:</strong> Board for listings co-owners want to sell.</li>
+        <li><strong>Basic Community Portal:</strong> Core resident layout for documents and announcements.</li>
+      </ul>
+
+      <h2>2. Board Adjustments Change Log</h2>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 30%;">Board / Owner Request</th>
+            <th style="width: 20%;">Date Discussed</th>
+            <th style="width: 50%;">Implementation Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Logo Rebranding</strong></td>
+            <td>April 27, 2026</td>
+            <td>Replaced placeholder Cactus graphics with the official Oasis RV Resort logo on the splash page and header nodes.</td>
+          </tr>
+          <tr>
+            <td><strong>Persistent Header Menu</strong></td>
+            <td>April 27, 2026</td>
+            <td>Built fixed navigation header and responsive mobile slider drawer.</td>
+          </tr>
+          <tr>
+            <td><strong>Standardised Layout Cards</strong></td>
+            <td>April 27, 2026</td>
+            <td>Standardised "Rent a Site" listings to use the same premium card presentation layouts as "Buy a Site".</td>
+          </tr>
+          <tr>
+            <td><strong>Eliminate Travel Wording</strong></td>
+            <td>April 27, 2026</td>
+            <td>Cleaned up landing page descriptions to focus strictly on property layout parameters.</td>
+          </tr>
+          <tr>
+            <td><strong>Form Digitisation</strong></td>
+            <td>April 27, 2026</td>
+            <td>Digitised owner registration/rental flows to allow simple file upload and submission notifications.</td>
+          </tr>
+          <tr>
+            <td><strong>Document Library Folders</strong></td>
+            <td>May 26, 2026</td>
+            <td>Organised folders under "Forms & Documents" and created directories for financial statements.</td>
+          </tr>
+          <tr>
+            <td><strong>Multi-Image Ad Support</strong></td>
+            <td>May 19, 2026</td>
+            <td>Expanded cards data index configuration to support up to 5 pictures per listing.</td>
+          </tr>
+          <tr>
+            <td><strong>Sign-Up Restricting Gate</strong></td>
+            <td>May 26, 2026</td>
+            <td>Configured moderation settings requiring admin approval before portal profile activation.</td>
+          </tr>
+          <tr>
+            <td><strong>Privacy & Opt-Out Settings</strong></td>
+            <td>May 26, 2026</td>
+            <td>Implemented profile flags allowing owners to mask emails and show only unit numbers.</td>
+          </tr>
+          <tr>
+            <td><strong>Wyze Cam Embeds</strong></td>
+            <td>June 12, 2026</td>
+            <td><strong>Pending Credentials.</strong> Built structure to route streams. Ready for final authentication parameters.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>3. Technical Contributions Provided at No Cost</h2>
+      <p style="font-size: 14px; color: #d1d5db; margin-bottom: 16px;">The following specialised database, network, and design elements were completed at no extra charge to keep the project on its $2,800 baseline:</p>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 50%;">Service Completed</th>
+            <th style="width: 25%;">Labour Logged</th>
+            <th style="width: 25%;">Amount Charged</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Custom 3D WebGL Graphic Design</strong> <span class="badge">No Cost</span></td>
+            <td>12 hrs @ $80/hr</td>
+            <td style="color: var(--success); font-weight: 600;">$0.00</td>
+          </tr>
+          <tr>
+            <td><strong>VPS Email Server Stack Setup</strong> <span class="badge">No Cost</span></td>
+            <td>8 hrs @ $80/hr</td>
+            <td style="color: var(--success); font-weight: 600;">$0.00</td>
+          </tr>
+          <tr>
+            <td><strong>SSL/TLS Certificate Installation</strong> <span class="badge">No Cost</span></td>
+            <td>3 hrs @ $80/hr</td>
+            <td style="color: var(--success); font-weight: 600;">$0.00</td>
+          </tr>
+          <tr>
+            <td><strong>Codebase Sanitisation & Cleanup</strong> <span class="badge">No Cost</span></td>
+            <td>4 hrs @ $80/hr</td>
+            <td style="color: var(--success); font-weight: 600;">$0.00</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="actions">
+        <button class="btn" onclick="window.print()">Print / Save PDF</button>
+      </div>
+    </div>
+
+    <div class="navigation-links">
+      <a href="Oasis_RV_Resort_Invoice.html" class="nav-btn">View Invoice</a>
+      <a href="#" class="nav-btn active">View Scope & Change Log</a>
+      <a href="Oasis_System_Node_Map.html" class="nav-btn">System Node Map</a>
+    </div>
+  </div>
+
+</body>
+</html>
