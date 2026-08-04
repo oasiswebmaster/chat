@@ -8,9 +8,7 @@
   var BINS = {
     cards: 'cards',
     site: 'site',
-    alert: 'alert',
-    about: 'about',
-    map: 'map'
+    alert: 'alert'
   };
 
   function readBin(id) {
@@ -273,193 +271,6 @@
     }, FAILSAFE_MS);
   }
 
-  /* ── Apply About Config ── */
-  function applyAboutConfig(cfg) {
-    if (!cfg) return;
-    var el = document.querySelector('[class*="BookingSection"][class*="subtitle"]');
-    if (el) {
-      if (typeof cfg.subtitle === 'string' && cfg.subtitle.trim() !== '') {
-        el.textContent = cfg.subtitle;
-        el.style.display = '';
-      } else {
-        el.style.display = 'none';
-      }
-    }
-  }
-
-  /* ── Apply Map Config ── */
-  function applyMapConfig(cfg) {
-    if (!cfg || !cfg.spots || !cfg.spots.length) return;
-
-    /* Lookup table by spot ID */
-    var spotMap = {};
-    cfg.spots.forEach(function (s) {
-      spotMap[s.id] = s;
-    });
-
-    function updateAllMapSpots() {
-      /* ─────────────────────────────────────────────────────────────
-       * 1. Update IsometricMap (Overlay Map)
-       * ───────────────────────────────────────────────────────────── */
-      var isoContainer = document.querySelector('[class*="IsometricMap-module"][class*="__mapContainer"]');
-      var isoOverlay = document.querySelector('[class*="IsometricMap-module"][class*="__overlay"]');
-
-      if (isoContainer && isoOverlay) {
-        var isoBtns = Array.prototype.filter.call(
-          isoContainer.querySelectorAll('button[class*="spot"]'),
-          function (b) { return b.tagName === 'BUTTON'; }
-        );
-        var isoCards = isoOverlay.querySelectorAll('[class*="infoCard"]');
-
-        var isoOrder = ['pool', 'spa', 'beach', 'washrooms', 'clubhouse', 'playground', 'lounge'];
-
-        isoOrder.forEach(function (id, idx) {
-          var sc = spotMap[id];
-          if (!sc) return;
-
-          var btn = isoBtns[idx];
-          var card = isoCards[idx];
-
-          /* Dynamically inject 7th spot (lounge) if missing */
-          if (!btn && isoBtns.length > 0) {
-            btn = isoBtns[0].cloneNode(true);
-            isoContainer.appendChild(btn);
-            isoBtns.push(btn);
-          }
-          if (!card && isoCards.length > 0) {
-            card = isoCards[0].cloneNode(true);
-            isoOverlay.appendChild(card);
-            isoCards = isoOverlay.querySelectorAll('[class*="infoCard"]');
-          }
-
-          if (btn) {
-            var tooltip = btn.querySelector('[class*="spotTooltip"] span');
-            if (tooltip && sc.name) tooltip.textContent = sc.name;
-            if (sc.x !== undefined) btn.style.left = sc.x + '%';
-            if (sc.y !== undefined) btn.style.top = sc.y + '%';
-            btn.style.display = sc.visible === false ? 'none' : '';
-          }
-
-          if (card) {
-            var label = card.querySelector('[class*="infoCardLabel"]');
-            if (label && sc.name) label.textContent = sc.name;
-
-            var body = card.querySelector('[class*="infoCardBody"]');
-            if (body && sc.description) body.textContent = sc.description;
-
-            if (sc.image) {
-              var img = card.querySelector('[class*="infoCardImage"] img');
-              if (img) { img.src = sc.image; img.alt = sc.name; }
-            }
-            card.style.display = sc.visible === false ? 'none' : '';
-          }
-        });
-      }
-
-      /* ─────────────────────────────────────────────────────────────
-       * 2. Update MapSection (Homepage Scroll Map)
-       * ───────────────────────────────────────────────────────────── */
-      var mapSection = document.querySelector('[class*="MapSection-module"][class*="__mapSection"]');
-      if (mapSection) {
-        var secOrder = ['beach', 'pool', 'spa', 'washrooms', 'clubhouse', 'playground', 'lounge'];
-
-        /* 2a. Update / Inject Spot Buttons & Tooltips */
-        var spotsContainer = mapSection.querySelector('[class*="mapSpots"]');
-        var secSpots = Array.prototype.filter.call(
-          mapSection.querySelectorAll('[class*="mapSpot"]'),
-          function (el) { return el.classList.value.indexOf('mapSpots') === -1; }
-        );
-
-        /* 2b. Update / Inject Left Nav Bullets */
-        var navList = mapSection.querySelector('[class*="mapNavList"]');
-        var secBullets = mapSection.querySelectorAll('[class*="mapNavBullet"]');
-
-        secOrder.forEach(function (id, idx) {
-          var sc = spotMap[id];
-          if (!sc) return;
-
-          /* Update/Create spot element */
-          var spotEl = secSpots[idx];
-          if (!spotEl && secSpots.length > 0 && spotsContainer) {
-            spotEl = secSpots[0].cloneNode(true);
-            spotsContainer.appendChild(spotEl);
-            secSpots.push(spotEl);
-          }
-
-          if (spotEl) {
-            var tt = spotEl.querySelector('[class*="mapSpotTooltip"] span');
-            if (tt && sc.name) tt.textContent = sc.name;
-            if (sc.x !== undefined) spotEl.style.left = sc.x + '%';
-            if (sc.y !== undefined) spotEl.style.top = sc.y + '%';
-          }
-
-          /* Update/Create left nav bullet element */
-          var bulletEl = secBullets[idx];
-          if (!bulletEl && secBullets.length > 0 && navList) {
-            bulletEl = secBullets[0].cloneNode(true);
-            navList.appendChild(bulletEl);
-            secBullets = mapSection.querySelectorAll('[class*="mapNavBullet"]');
-          }
-
-          if (bulletEl && sc.name) {
-            var textChild = null;
-            bulletEl.childNodes.forEach(function(node) {
-              if (node.nodeType === 3) textChild = node;
-            });
-            if (textChild) {
-              textChild.textContent = sc.name;
-            } else if (bulletEl.childNodes.length === 0) {
-              bulletEl.textContent = sc.name;
-            } else {
-              bulletEl.appendChild(document.createTextNode(sc.name));
-            }
-          }
-        });
-
-        /* 2c. Intercept / Override Bottom-Right Info Box (mapBox) */
-        var mapBox = mapSection.querySelector('[class*="mapBox"]');
-        if (mapBox) {
-          var boxLabel = mapBox.querySelector('[class*="mapBoxLabel"]');
-          var boxBody = mapBox.querySelector('[class*="mapBoxBody"]');
-          var boxImg = mapBox.querySelector('[class*="mapBoxImage"] img');
-
-          if (boxLabel) {
-            var txt = boxLabel.textContent.trim().toLowerCase();
-            if (txt.indexOf('fitness') > -1 || txt.indexOf('washroom') > -1 || txt.indexOf('gym') > -1) {
-              var wSc = spotMap['washrooms'];
-              if (wSc) {
-                if (boxLabel.textContent !== wSc.name) boxLabel.textContent = wSc.name;
-                if (boxBody && wSc.description) boxBody.textContent = wSc.description;
-                if (boxImg && wSc.image) { boxImg.src = wSc.image; boxImg.alt = wSc.name; }
-              }
-            } else if (txt.indexOf('lounge') > -1) {
-              var lSc = spotMap['lounge'];
-              if (lSc) {
-                if (boxLabel.textContent !== lSc.name) boxLabel.textContent = lSc.name;
-                if (boxBody && lSc.description) boxBody.textContent = lSc.description;
-                if (boxImg && lSc.image) { boxImg.src = lSc.image; boxImg.alt = lSc.name; }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Run update immediately
-    updateAllMapSpots();
-
-    // Continuously check every 200ms for dynamically mounted maps
-    setInterval(updateAllMapSpots, 200);
-
-    // Also observe DOM mutations to catch React dynamic renders instantly
-    if (window.MutationObserver && document.body) {
-      var observer = new MutationObserver(function () {
-        updateAllMapSpots();
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
-    }
-  }
-
   /* ── Init ── */
   function init() {
     // Start failsafe timer immediately
@@ -482,8 +293,6 @@
       readBin(BINS.alert).then(showAlert).catch(function () {});
       readBin(BINS.site).then(applySiteConfig).catch(function () {});
       readBin(BINS.cards).then(applyCardsConfig).catch(function () {});
-      readBin(BINS.about).then(applyAboutConfig).catch(function () {});
-      readBin(BINS.map).then(applyMapConfig).catch(function () {});
     }, 100);
   }
 

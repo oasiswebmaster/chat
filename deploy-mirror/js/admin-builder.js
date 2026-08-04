@@ -1,10 +1,15 @@
 /* ═══════════════════════════════════════════════════════════════
  *  Oasis Visual Web Builder
  *  Premium admin panel with live preview, drag-drop, and
- *  WYSIWYG editing.
+ *  WYSIWYG editing. Uses jsonblob.com for global cloud storage.
  * ═══════════════════════════════════════════════════════════════ */
 (function () {
   var API = '/api/config.php';
+  var BINS = {
+    cards: 'cards',
+    site:  'site',
+    alert: 'alert'
+  };
 
   function readBin(id) { return fetch(API+'?key='+id).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}); }
   function writeBin(id, data) { return fetch(API+'?key='+id,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}); }
@@ -15,14 +20,8 @@
     site: {manager_name:'',manager_phone:'',manager_email:'',address_line1:'2615 Lakeshore Dr',address_line2:'Osoyoos, BC V0H 1V6'},
     alert: {active:false,severity:'warning',headline:'',message:''},
     cards: {sale:[],rental:[]},
-    pages: {},
-    navigation: [],
-    about: {eyebrow:'',heading:'',subtitle:'',body:''},
-    map: {spots:[]},
     tab: 0, cardsTab: 'sale', dirty: {}
   };
-
-  var editingPageSlug = '';
 
   /* ── Inject Styles ── */
   var st = document.createElement('style'); st.textContent = `
@@ -45,6 +44,7 @@
     .vb-tab{padding:0 20px;display:flex;align-items:center;gap:6px;font-size:.8rem;font-weight:500;color:rgba(255,255,255,.35);cursor:pointer;border-bottom:2px solid transparent;transition:all .25s;user-select:none}
     .vb-tab:hover{color:rgba(255,255,255,.6)}
     .vb-tab.on{color:#fff;border-bottom-color:#1767f6}
+    .vb-tab .icon{font-size:1rem}
 
     /* ── Split Layout ── */
     .vb-body{flex:1;display:flex;overflow:hidden}
@@ -168,20 +168,18 @@
     root.innerHTML = '';
 
     /* ── Top Bar ── */
-    root.innerHTML = '<div class="vb-top"><div class="vb-logo"><span>Oasis Web Builder</span></div><div class="vb-top-actions"><span class="vb-saved" id="vb-saved">Saved</span><button class="vb-btn vb-ghost" id="vb-close">Logout</button></div></div>';
+    root.innerHTML = '<div class="vb-top"><div class="vb-logo">🏝️ <span>Oasis Web Builder</span></div><div class="vb-top-actions"><span class="vb-saved" id="vb-saved">✓ Saved</span><button class="vb-btn vb-ghost" id="vb-close">Logout ✕</button></div></div>';
 
     /* ── Tabs ── */
     var tabs = [
-      {label:'Listings'},
-      {label:'Site Content'},
-      {label:'Emergency Alert'},
-      {label:'Pages & Links'},
-      {label:'Map Hotspots'}
+      {icon:'📋',label:'Listings'},
+      {icon:'🏠',label:'Site Content'},
+      {icon:'🚨',label:'Emergency Alert'}
     ];
     var tabBar = document.createElement('div'); tabBar.className = 'vb-tabs';
     tabs.forEach(function(t,i){
       var tb = document.createElement('div'); tb.className = 'vb-tab'+(i===0?' on':''); tb.dataset.idx = i;
-      tb.innerHTML = t.label;
+      tb.innerHTML = '<span class="icon">'+t.icon+'</span>'+t.label;
       tb.addEventListener('click', function(){ switchTab(i); });
       tabBar.appendChild(tb);
     });
@@ -232,12 +230,6 @@
     S.tab = idx;
     document.querySelectorAll('.vb-tab').forEach(function(t,i){ t.classList.toggle('on',i===idx); });
     document.querySelectorAll('.vb-sec').forEach(function(s,i){ s.classList.toggle('on',i===idx); });
-    if (idx === 3) {
-      renderPagesTab();
-    }
-    if (idx === 4) {
-      renderMapTab();
-    }
     renderPreview();
   }
 
@@ -254,7 +246,7 @@
     var cardTabs = document.createElement('div'); cardTabs.className = 'vb-card-tabs';
     ['sale','rental'].forEach(function(type){
       var ct = document.createElement('div'); ct.className = 'vb-card-tab'+(type==='sale'?' on':'');
-      ct.textContent = type==='sale'?'For Sale':'For Rent';
+      ct.textContent = type==='sale'?'🏡 For Sale':'🔑 For Rent';
       ct.addEventListener('click', function(){
         S.cardsTab = type;
         cardTabs.querySelectorAll('.vb-card-tab').forEach(function(c){c.classList.remove('on')});
@@ -269,43 +261,46 @@
     var listWrap = document.createElement('div'); listWrap.id = 'vb-list-wrap';
     sec0.appendChild(listWrap);
 
+    /* Add New Listing Button */
+    var addBtn = document.createElement('button');
+    addBtn.className = 'vb-btn vb-ghost';
+    addBtn.id = 'wb-add-card-btn';
+    addBtn.style.cssText = 'width:100%;margin-top:12px;border:1px dashed rgba(255,255,255,0.15);background:transparent;color:rgba(255,255,255,0.5);font-size:0.75rem;font-weight:600;padding:10px;cursor:pointer;border-radius:6px;transition:all 0.2s;';
+    addBtn.addEventListener('mouseenter', function(){ this.style.color='#fff'; this.style.borderColor='rgba(255,255,255,0.3)'; });
+    addBtn.addEventListener('mouseleave', function(){ this.style.color='rgba(255,255,255,0.5)'; this.style.borderColor='rgba(255,255,255,0.15)'; });
+    sec0.appendChild(addBtn);
+
     /* Edit form (hidden until card selected) */
     var editForm = document.createElement('div'); editForm.id = 'vb-edit-form'; editForm.style.display = 'none';
     sec0.appendChild(editForm);
 
     /* Publish button */
-    sec0.innerHTML += '<div class="vb-actions" style="margin-top:20px"><button class="vb-btn vb-pub" id="pub-cards">Publish Listings</button></div>';
+    sec0.innerHTML += '<div class="vb-actions" style="margin-top:20px"><button class="vb-btn vb-pub" id="pub-cards">✓ Publish Listings</button></div>';
 
     ed.appendChild(sec0);
 
     /* ── 2. SITE CONTENT ── */
     var sec1 = document.createElement('div'); sec1.className = 'vb-sec'; sec1.id = 'sec-site';
     sec1.innerHTML = `
-      <div class="vb-card"><h3>On Site Managers</h3>
+      <div class="vb-card"><h3>👤 On Site Managers</h3>
         <div class="vb-f"><label>Manager Name(s)</label><input id="f-mgr-name" type="text" placeholder="e.g. John & Jane Smith"></div>
         <div class="vb-row">
           <div class="vb-f"><label>Phone</label><input id="f-mgr-phone" type="text" placeholder="(250) 495-1234"></div>
           <div class="vb-f"><label>Email</label><input id="f-mgr-email" type="text" placeholder="manager@oasisresort.ca"></div>
         </div>
       </div>
-      <div class="vb-card"><h3>Resort Address</h3>
+      <div class="vb-card"><h3>📍 Resort Address</h3>
         <div class="vb-f"><label>Street</label><input id="f-addr1" type="text" placeholder="2615 Lakeshore Dr"></div>
         <div class="vb-f"><label>City / Province / Postal</label><input id="f-addr2" type="text" placeholder="Osoyoos, BC V0H 1V6"></div>
       </div>
-      <div class="vb-card"><h3>About The Oasis <span class="badge" style="background:rgba(23,103,246,.15);color:#1767f6">Homepage</span></h3>
-        <div class="vb-f"><label>Section Eyebrow</label><input id="f-about-eyebrow" type="text" placeholder="e.g. About The Oasis"></div>
-        <div class="vb-f"><label>Section Heading</label><input id="f-about-heading" type="text" placeholder="e.g. The Oasis RV Resort"></div>
-        <div class="vb-f"><label>Booking Subtitle (leave blank to hide)</label><input id="f-about-subtitle" type="text" placeholder="Shown under Your Piece of Paradise"></div>
-        <div class="vb-f"><label>About Body Text</label><textarea id="f-about-body" style="min-height:140px" placeholder="Resort description..."></textarea></div>
-      </div>
-      <div class="vb-actions"><button class="vb-btn vb-pub" id="pub-site">Publish Site Content</button></div>
+      <div class="vb-actions"><button class="vb-btn vb-pub" id="pub-site">✓ Publish Site Content</button></div>
     `;
     ed.appendChild(sec1);
 
     /* ── 3. EMERGENCY ALERT ── */
     var sec2 = document.createElement('div'); sec2.className = 'vb-sec'; sec2.id = 'sec-alert';
     sec2.innerHTML = `
-      <div class="vb-card"><h3>Emergency Alert <span class="badge" id="alert-badge" style="background:rgba(255,255,255,.06);color:rgba(255,255,255,.35)">OFF</span></h3>
+      <div class="vb-card"><h3>🚨 Emergency Alert <span class="badge" id="alert-badge" style="background:rgba(255,255,255,.06);color:rgba(255,255,255,.35)">OFF</span></h3>
         <label class="vb-toggle">
           <input type="checkbox" id="f-alert-active">
           <span class="vb-ttrack"></span>
@@ -314,26 +309,18 @@
         </label>
         <div style="margin-top:18px">
           <div class="vb-f"><label>Severity</label>
-            <select id="f-alert-sev"><option value="warning">Warning (Amber)</option><option value="critical">Critical (Red)</option></select>
+            <select id="f-alert-sev"><option value="warning">⚠️ Warning (Amber)</option><option value="critical">🔴 Critical (Red)</option></select>
           </div>
-          <div class="vb-f"><label>Headline</label><input id="f-alert-head" type="text" placeholder="e.g. Resort Closure Notice"></div>
+          <div class="vb-f"><label>Headline</label><input id="f-alert-head" type="text" placeholder="e.g. ⚠️ RESORT CLOSURE NOTICE"></div>
           <div class="vb-f"><label>Message</label><textarea id="f-alert-msg" placeholder="e.g. The Oasis is shut down this weekend due to forest fire warning..."></textarea></div>
         </div>
       </div>
       <div class="vb-actions">
-        <button class="vb-btn vb-pub" id="pub-alert">Publish Alert</button>
-        <button class="vb-btn vb-del" id="clear-alert">Clear Alert</button>
+        <button class="vb-btn vb-pub" id="pub-alert">✓ Publish Alert</button>
+        <button class="vb-btn vb-del" id="clear-alert">✕ Clear Alert</button>
       </div>
     `;
     ed.appendChild(sec2);
-
-    /* ── 4. PAGES & LINKS ── */
-    var sec3 = document.createElement('div'); sec3.className = 'vb-sec'; sec3.id = 'sec-pages';
-    ed.appendChild(sec3);
-
-    /* ── 5. MAP HOTSPOTS ── */
-    var sec4 = document.createElement('div'); sec4.className = 'vb-sec'; sec4.id = 'sec-map';
-    ed.appendChild(sec4);
 
     /* ── Bind events ── */
     setTimeout(bindEvents, 100);
@@ -347,12 +334,6 @@
       if(el) el.addEventListener('input', function(){ syncSiteState(); renderPreview(); });
     });
 
-    /* About fields → live preview */
-    ['f-about-eyebrow','f-about-heading','f-about-subtitle','f-about-body'].forEach(function(id){
-      var el = document.getElementById(id);
-      if(el) el.addEventListener('input', function(){ syncAboutState(); renderPreview(); });
-    });
-
     /* Alert fields → live preview */
     var alertActive = document.getElementById('f-alert-active');
     if(alertActive) alertActive.addEventListener('change', function(){
@@ -360,7 +341,7 @@
       var label = document.getElementById('alert-toggle-label');
       var badge = document.getElementById('alert-badge');
       if(label){label.textContent=alertActive.checked?'Alert is LIVE':'Alert is OFF';label.style.color=alertActive.checked?'#16a34a':'rgba(255,255,255,.35)'}
-      if(badge){badge.textContent=alertActive.checked?'LIVE':'OFF';badge.style.background=alertActive.checked?'rgba(22,163,74,.2)':'rgba(255,255,255,.06)';badge.style.color=alertActive.checked?'#16a34a':'rgba(255,255,255,.35)'}
+      if(badge){badge.textContent=alertActive.checked?'● LIVE':'OFF';badge.style.background=alertActive.checked?'rgba(22,163,74,.2)':'rgba(255,255,255,.06)';badge.style.color=alertActive.checked?'#16a34a':'rgba(255,255,255,.35)'}
       renderPreview();
     });
     ['f-alert-sev','f-alert-head','f-alert-msg'].forEach(function(id){
@@ -371,34 +352,65 @@
     /* Publish buttons */
     var pubCards = document.getElementById('pub-cards');
     if(pubCards) pubCards.addEventListener('click', function(){
-      writeBin('cards', S.cards).then(function(){toast('Listings published! Live for all visitors.')}).catch(function(){toast('Failed to publish','err')});
+      writeBin(BINS.cards, S.cards).then(function(){toast('Listings published! Live for all visitors.')}).catch(function(){toast('Failed to publish','err')});
     });
+
+    /* Add Card Button */
+    var addCardBtn = document.getElementById('wb-add-card-btn');
+    if(addCardBtn) {
+      addCardBtn.innerHTML = '➕ Add New Listing';
+      addCardBtn.addEventListener('click', function(){
+        var arr = S.cards[S.cardsTab];
+        if(!arr) { S.cards[S.cardsTab] = []; arr = S.cards[S.cardsTab]; }
+        
+        var nextId = 1;
+        var allCards = (S.cards.sale || []).concat(S.cards.rental || []);
+        if(allCards.length > 0) {
+          nextId = Math.max.apply(null, allCards.map(function(c){return c.id || 0;})) + 1;
+        }
+        var isRent = (S.cardsTab === 'rental');
+        var newCard = {
+          id: nextId,
+          lot_number: isRent ? 'Site 300' : 'Lot 300',
+          title: isRent ? 'New Rental Site' : 'New Lot for Sale',
+          price: isRent ? '$150/night' : '$150,000',
+          lot_type: isRent ? 'Full Hook-Up RV Site' : 'Park Model + Arizona Room',
+          sqft: '300 sq ft',
+          description: 'Enter description here...',
+          image_url: '/images/spots/pool.jpg',
+          images: ['/images/spots/pool.jpg'],
+          status: 'active',
+          href: isRent ? 'https://oasisresort.ca/sites-for-rent/' : 'https://oasisresort.ca/sites-for-sale/'
+        };
+        arr.push(newCard);
+        renderListings();
+        selectCard(arr.length - 1);
+        renderPreview();
+        toast('New listing added! Remember to publish.');
+      });
+    }
+
     var pubSite = document.getElementById('pub-site');
     if(pubSite) pubSite.addEventListener('click', function(){
       syncSiteState();
-      syncAboutState();
-      Promise.all([
-        writeBin('site', S.site),
-        writeBin('about', S.about)
-      ]).then(function(){toast('Site content & about text published!')}).catch(function(){toast('Failed to publish','err')});
+      writeBin(BINS.site, S.site).then(function(){toast('Site content published! Live for all visitors.')}).catch(function(){toast('Failed to publish','err')});
     });
     var pubAlert = document.getElementById('pub-alert');
     if(pubAlert) pubAlert.addEventListener('click', function(){
       syncAlertState();
-      writeBin('alert', S.alert).then(function(){toast(S.alert.active?'Alert is LIVE for all visitors!':'Alert saved (currently OFF).')}).catch(function(){toast('Failed to publish','err')});
+      writeBin(BINS.alert, S.alert).then(function(){toast(S.alert.active?'🚨 Alert is LIVE for all visitors!':'Alert saved (currently OFF).')}).catch(function(){toast('Failed to publish','err')});
     });
     var clearAlert = document.getElementById('clear-alert');
     if(clearAlert) clearAlert.addEventListener('click', function(){
       S.alert = {active:false,severity:'warning',headline:'',message:''};
       populateAlertFields();
       renderPreview();
-      writeBin('alert', S.alert).then(function(){toast('Alert cleared.')}).catch(function(){toast('Failed','err')});
+      writeBin(BINS.alert, S.alert).then(function(){toast('Alert cleared.')}).catch(function(){toast('Failed','err')});
     });
 
     /* Populate fields with loaded data */
     populateSiteFields();
     populateAlertFields();
-    populateAboutFields();
     renderListings();
   }
 
@@ -421,66 +433,6 @@
     var set=function(id,v){var e=document.getElementById(id);if(e){if(e.type==='checkbox')e.checked=!!v;else e.value=v||''}};
     set('f-alert-active',a.active);set('f-alert-sev',a.severity);set('f-alert-head',a.headline);set('f-alert-msg',a.message);
     var cb=document.getElementById('f-alert-active');if(cb)cb.dispatchEvent(new Event('change'));
-  }
-
-  function syncAboutState(){
-    var g=function(id){var e=document.getElementById(id);return e?e.value:''};
-    S.about={eyebrow:g('f-about-eyebrow'),heading:g('f-about-heading'),subtitle:g('f-about-subtitle'),body:g('f-about-body')};
-  }
-  function populateAboutFields(){
-    var a=S.about;
-    var set=function(id,v){var e=document.getElementById(id);if(e)e.value=v||''};
-    set('f-about-eyebrow',a.eyebrow);set('f-about-heading',a.heading);set('f-about-subtitle',a.subtitle);set('f-about-body',a.body);
-  }
-
-  /* ══════════════════════════════════════════════════ */
-  /*              MAP HOTSPOTS EDITOR                   */
-  /* ══════════════════════════════════════════════════ */
-  function renderMapTab() {
-    var sec = document.getElementById('sec-map');
-    if (!sec) return;
-    var html = '';
-    var spots = S.map.spots || [];
-    spots.forEach(function(spot, idx) {
-      html += '<div class="vb-card" style="border-left:3px solid '+(spot.visible!==false?'#16a34a':'rgba(255,255,255,.1)')+'">';
-      html += '<h3>'+esc(spot.name)+' <span class="badge" style="background:'+(spot.visible!==false?'rgba(22,163,74,.2)':'rgba(255,255,255,.06)')+';color:'+(spot.visible!==false?'#16a34a':'rgba(255,255,255,.35)')+'">'+(spot.visible!==false?'Visible':'Hidden')+'</span></h3>';
-      html += '<div class="vb-f"><label>Spot Name</label><input class="map-spot-name" data-idx="'+idx+'" value="'+esc(spot.name)+'"></div>';
-      html += '<div class="vb-f"><label>Description</label><textarea class="map-spot-desc" data-idx="'+idx+'" style="min-height:80px">'+esc(spot.description)+'</textarea></div>';
-      html += '<div class="vb-row">';
-      html += '<div class="vb-f"><label>Image URL</label><input class="map-spot-img" data-idx="'+idx+'" value="'+esc(spot.image)+'"></div>';
-      html += '<div class="vb-f" style="max-width:100px"><label>Visible</label><select class="map-spot-vis" data-idx="'+idx+'"><option value="true"'+(spot.visible!==false?' selected':'')+'>Yes</option><option value="false"'+(spot.visible===false?' selected':'')+'>No</option></select></div>';
-      html += '</div>';
-      html += '<div class="vb-row">';
-      html += '<div class="vb-f"><label>X Position (%)</label><input class="map-spot-x" data-idx="'+idx+'" value="'+(spot.x||0)+'" type="number" step="0.01"></div>';
-      html += '<div class="vb-f"><label>Y Position (%)</label><input class="map-spot-y" data-idx="'+idx+'" value="'+(spot.y||0)+'" type="number" step="0.01"></div>';
-      html += '</div>';
-      html += '</div>';
-    });
-    html += '<div class="vb-actions" style="margin-top:20px"><button class="vb-btn vb-pub" id="pub-map">Publish Map Hotspots</button></div>';
-    sec.innerHTML = html;
-
-    /* Bind map spot inputs */
-    sec.querySelectorAll('.map-spot-name').forEach(function(el){
-      el.addEventListener('input', function(){ S.map.spots[+el.dataset.idx].name = el.value; renderPreview(); });
-    });
-    sec.querySelectorAll('.map-spot-desc').forEach(function(el){
-      el.addEventListener('input', function(){ S.map.spots[+el.dataset.idx].description = el.value; renderPreview(); });
-    });
-    sec.querySelectorAll('.map-spot-img').forEach(function(el){
-      el.addEventListener('input', function(){ S.map.spots[+el.dataset.idx].image = el.value; renderPreview(); });
-    });
-    sec.querySelectorAll('.map-spot-vis').forEach(function(el){
-      el.addEventListener('change', function(){ S.map.spots[+el.dataset.idx].visible = el.value==='true'; renderMapTab(); renderPreview(); });
-    });
-    sec.querySelectorAll('.map-spot-x').forEach(function(el){
-      el.addEventListener('input', function(){ S.map.spots[+el.dataset.idx].x = parseFloat(el.value)||0; });
-    });
-    sec.querySelectorAll('.map-spot-y').forEach(function(el){
-      el.addEventListener('input', function(){ S.map.spots[+el.dataset.idx].y = parseFloat(el.value)||0; });
-    });
-    document.getElementById('pub-map').addEventListener('click', function(){
-      writeBin('map', S.map).then(function(){toast('Map hotspots published! Live for all visitors.')}).catch(function(){toast('Failed to publish','err')});
-    });
   }
 
   /* ══════════════════════════════════════════════════ */
@@ -525,7 +477,7 @@
     document.querySelectorAll('.vb-listing').forEach(function(l,i){l.classList.toggle('selected',i===idx)});
 
     form.style.display = 'block';
-    form.innerHTML = '<div class="vb-card"><h3>Edit — '+esc(card.title)+'</h3>'
+    form.innerHTML = '<div class="vb-card"><h3>✏️ Edit — '+esc(card.title)+'</h3>'
       + '<div class="vb-f"><label>Title</label><input id="ce-title" value="'+esc(card.title||'')+'"></div>'
       + '<div class="vb-row"><div class="vb-f"><label>Price</label><input id="ce-price" value="'+esc(card.price||'')+'"></div>'
       + '<div class="vb-f"><label>Lot / Site #</label><input id="ce-lot" value="'+esc(card.lot_number||'')+'"></div></div>'
@@ -535,7 +487,8 @@
       + '<div class="vb-f"><label>Image URL</label><input id="ce-img" value="'+esc(card.image_url||card.images?.[0]||'')+'"></div>'
       + '<div class="vb-row"><div class="vb-f"><label>Status</label><select id="ce-status"><option value="active"'+(card.status==='active'?' selected':'')+'>Active</option><option value="hidden"'+(card.status==='hidden'?' selected':'')+'>Hidden</option></select></div>'
       + '<div class="vb-f"><label>Link URL</label><input id="ce-href" value="'+esc(card.href||'')+'"></div></div>'
-      + '</div>';
+      + '</div>'
+      + '<div style="margin-top:15px;padding:0 10px;"><button class="vb-btn vb-del" id="ce-delete" style="width:100%;border:none;border-radius:6px;padding:12px;font-weight:600;cursor:pointer;">✕ Delete Listing</button></div>';
 
     /* Bind live editing */
     ['ce-title','ce-price','ce-lot','ce-type','ce-sqft','ce-desc','ce-img','ce-status','ce-href'].forEach(function(id){
@@ -556,203 +509,19 @@
         document.querySelectorAll('.vb-listing')[idx]?.classList.add('selected');
       });
     });
-  }
 
-  /* ══════════════════════════════════════════════════ */
-  /*            PAGES & LINKS EDITOR                    */
-  /* ══════════════════════════════════════════════════ */
-  function renderPagesTab() {
-    var sec = document.getElementById('sec-pages');
-    if (!sec) return;
-
-    var html = '<div class="vb-card"><h3>Footer Navigation Links</h3>'
-      + '  <div id="vb-nav-list" style="margin-bottom:14px;"></div>'
-      + '  <button class="vb-btn vb-ghost" id="btn-add-nav-link" style="width:100%;">+ Add Link</button>'
-      + '</div>';
-
-    html += '<div class="vb-card"><h3>Custom Pages</h3>'
-      + '  <div class="vb-f"><label>Select Page to Edit</label>'
-      + '    <select id="pe-select-page"><option value="">-- Select a Page --</option>';
-    
-    Object.keys(S.pages).forEach(function(slug) {
-      html += '<option value="' + slug + '">' + esc(S.pages[slug].title) + ' (' + slug + ')</option>';
-    });
-    
-    html += '      <option value="new_page">+ Create New Page...</option>'
-      + '    </select>'
-      + '  </div>'
-      + '  <div id="pe-page-editor" style="display:none;margin-top:14px;border-top:1px solid rgba(255,255,255,.05);padding-top:14px;"></div>'
-      + '</div>';
-
-    html += '<div class="vb-actions" style="margin-top:20px">'
-      + '  <button class="vb-btn vb-pub" id="pub-pages-links">Publish Pages & Links</button>'
-      + '</div>';
-
-    sec.innerHTML = html;
-
-    // Bind events
-    document.getElementById('btn-add-nav-link').addEventListener('click', addNavLink);
-    document.getElementById('pe-select-page').addEventListener('change', selectPageToEdit);
-    document.getElementById('pub-pages-links').addEventListener('click', function() {
-      saveCurrentPageEdit();
-      Promise.all([
-        writeBin('pages', S.pages),
-        writeBin('navigation', S.navigation)
-      ]).then(function() {
-        toast('Pages and navigation published! Live on website.');
-      }).catch(function() {
-        toast('Failed to publish', 'err');
-      });
-    });
-
-    renderNavLinkList();
-  }
-
-  function renderNavLinkList() {
-    var wrap = document.getElementById('vb-nav-list');
-    if (!wrap) return;
-    wrap.innerHTML = '';
-
-    if (S.navigation.length === 0) {
-      wrap.innerHTML = '<p style="font-size:.75rem;color:rgba(255,255,255,.3);text-align:center;margin:10px 0;">No footer links. Add one below.</p>';
-      return;
-    }
-
-    S.navigation.forEach(function(item, idx) {
-      var row = document.createElement('div');
-      row.className = 'vb-row';
-      row.style.marginBottom = '10px';
-      row.style.alignItems = 'center';
-
-      row.innerHTML = 
-        '<div class="vb-f" style="margin-bottom:0;flex:2;"><input class="nav-label-input" data-idx="' + idx + '" value="' + esc(item.label) + '" placeholder="Label"></div>'
-        + '<div class="vb-f" style="margin-bottom:0;flex:3;"><input class="nav-url-input" data-idx="' + idx + '" value="' + esc(item.url) + '" placeholder="URL (e.g. /coming-soon?page=...)"></div>'
-        + '<div class="vb-f" style="margin-bottom:0;flex:1;display:flex;align-items:center;justify-content:center;gap:4px;"><label class="vb-toggle" style="gap:4px;" title="Open in new tab"><input type="checkbox" class="nav-target-input" data-idx="' + idx + '"' + (item.new_tab ? ' checked' : '') + '><span class="vb-ttrack" style="width:36px;height:20px;border-radius:10px;"><span class="vb-tknob" style="width:14px;height:14px;top:3px;left:3px;"></span></span></label></div>'
-        + '<button class="vb-btn vb-del btn-del-nav-link" data-idx="' + idx + '" style="padding:8px 12px;height:36px;">✕</button>';
-
-      row.querySelector('.nav-label-input').addEventListener('input', function(e) {
-        S.navigation[idx].label = e.target.value;
-        renderPreview();
-      });
-      row.querySelector('.nav-url-input').addEventListener('input', function(e) {
-        S.navigation[idx].url = e.target.value;
-        renderPreview();
-      });
-      row.querySelector('.nav-target-input').addEventListener('change', function(e) {
-        S.navigation[idx].new_tab = e.target.checked;
-        renderPreview();
-      });
-      row.querySelector('.btn-del-nav-link').addEventListener('click', function() {
-        S.navigation.splice(idx, 1);
-        renderNavLinkList();
-        renderPreview();
-      });
-
-      wrap.appendChild(row);
-    });
-  }
-
-  function addNavLink() {
-    S.navigation.push({ label: 'New Link', url: '/coming-soon.html?page=new-page', new_tab: false });
-    renderNavLinkList();
-    renderPreview();
-  }
-
-  function selectPageToEdit(e) {
-    saveCurrentPageEdit();
-
-    var val = e.target.value;
-    var editorWrap = document.getElementById('pe-page-editor');
-    if (!editorWrap) return;
-
-    if (!val) {
-      editorWrap.style.display = 'none';
-      editingPageSlug = '';
-      renderPreview();
-      return;
-    }
-
-    editorWrap.style.display = 'block';
-
-    if (val === 'new_page') {
-      editingPageSlug = '_new_page_temp';
-      editorWrap.innerHTML = 
-        '<div class="vb-f"><label>Page Title</label><input id="pe-title" value="" placeholder="e.g. Terms of Service"></div>'
-        + '<div class="vb-f"><label>Page URL Slug</label><input id="pe-slug" value="" placeholder="e.g. terms-of-service"></div>'
-        + '<div class="vb-f"><label>Page Content (HTML/Text)</label><textarea id="pe-content" placeholder="Enter page content here... HTML tags are supported."></textarea></div>'
-        + '<div class="vb-actions"><button class="vb-btn vb-pub" id="btn-save-new-page">Create Page</button></div>';
-
-      document.getElementById('btn-save-new-page').addEventListener('click', createNewPage);
-    } else {
-      editingPageSlug = val;
-      var p = S.pages[val];
-      editorWrap.innerHTML = 
-        '<div class="vb-f"><label>Page Title</label><input id="pe-title" value="' + esc(p.title) + '"></div>'
-        + '<div class="vb-f"><label>Page URL Slug (cannot be changed)</label><input id="pe-slug" value="' + val + '" disabled style="opacity:0.5;"></div>'
-        + '<div class="vb-f"><label>Page Content (HTML/Text)</label><textarea id="pe-content" style="min-height:250px;">' + esc(p.content) + '</textarea></div>'
-        + '<div class="vb-actions"><button class="vb-btn vb-del" id="btn-delete-page">Delete Page</button></div>';
-
-      document.getElementById('btn-delete-page').addEventListener('click', deletePage);
-
-      ['pe-title', 'pe-content'].forEach(function(id) {
-        document.getElementById(id).addEventListener('input', function() {
-          saveCurrentPageEdit();
+    /* Bind delete button */
+    var delBtn = document.getElementById('ce-delete');
+    if(delBtn) {
+      delBtn.addEventListener('click', function(){
+        if(confirm('Are you sure you want to delete this listing?')) {
+          S.cards[S.cardsTab].splice(idx, 1);
+          form.style.display = 'none';
+          renderListings();
           renderPreview();
-        });
+          toast('Listing deleted! Remember to publish.');
+        }
       });
-    }
-
-    renderPreview();
-  }
-
-  function saveCurrentPageEdit() {
-    if (!editingPageSlug || editingPageSlug === '_new_page_temp') return;
-    var titleEl = document.getElementById('pe-title');
-    var contentEl = document.getElementById('pe-content');
-    if (titleEl && contentEl && S.pages[editingPageSlug]) {
-      S.pages[editingPageSlug].title = titleEl.value;
-      S.pages[editingPageSlug].content = contentEl.value;
-    }
-  }
-
-  function createNewPage() {
-    var title = document.getElementById('pe-title').value.trim();
-    var slug = document.getElementById('pe-slug').value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '-');
-    var content = document.getElementById('pe-content').value;
-
-    if (!title || !slug) {
-      alert('Please enter both a title and a URL slug.');
-      return;
-    }
-
-    if (S.pages[slug]) {
-      alert('A page with this slug already exists.');
-      return;
-    }
-
-    S.pages[slug] = { title: title, content: content };
-    editingPageSlug = slug;
-    
-    var select = document.getElementById('pe-select-page');
-    select.innerHTML = '<option value="">-- Select a Page --</option>';
-    Object.keys(S.pages).forEach(function(s) {
-      select.innerHTML += '<option value="' + s + '">' + esc(S.pages[s].title) + ' (' + s + ')</option>';
-    });
-    select.innerHTML += '<option value="new_page">+ Create New Page...</option>';
-    select.value = slug;
-    
-    select.dispatchEvent(new Event('change'));
-    toast('Page created! Click Publish to save changes.');
-  }
-
-  function deletePage() {
-    if (!editingPageSlug) return;
-    if (confirm('Are you sure you want to delete this page? This cannot be undone.')) {
-      delete S.pages[editingPageSlug];
-      editingPageSlug = '';
-      renderPagesTab();
-      renderPreview();
-      toast('Page deleted. Click Publish to save changes.');
     }
   }
 
@@ -785,61 +554,21 @@
       if(S.site.manager_email) html += '<a href="mailto:'+esc(S.site.manager_email)+'">'+esc(S.site.manager_email)+'</a>';
       if(!S.site.manager_name && !S.site.manager_phone) html += '<span style="color:#9ca3af;font-style:italic">Not set — fill in the fields to see preview</span>';
       html += '</div></div></div></div>';
-
-      /* About section preview */
-      html += '<div class="pvw-section" data-label="About The Oasis">';
-      html += '<div class="pvw-label">'+(esc(S.about.eyebrow)||'About')+'</div>';
-      html += '<div class="pvw-heading">'+(esc(S.about.heading)||'The Oasis RV Resort')+'</div>';
-      if(S.about.subtitle) html += '<p style="font-size:.9rem;color:#6b7280;font-style:italic;margin-bottom:12px">'+esc(S.about.subtitle)+'</p>';
-      html += '<div class="pvw-body"><p>'+(esc(S.about.body)||'<em style="color:#9ca3af">No body text — edit above</em>').replace(/\n/g,'</p><p>')+'</p></div>';
-      html += '</div>';
     }
 
     if(S.tab === 2) {
       /* Alert preview */
       if(S.alert.active) {
         html += '<div class="pvw-alert '+esc(S.alert.severity)+'">';
-        html += '<div style="font-size:2rem;margin-bottom:8px">' + (S.alert.severity==='critical'?'[Critical Alert]':'[Warning Alert]') + '</div>';
+        html += '<div style="font-size:2rem;margin-bottom:8px">'+(S.alert.severity==='critical'?'🚨':'⚠️')+'</div>';
         html += '<h3>'+esc(S.alert.headline||'Headline...')+'</h3>';
         html += '<p>'+esc(S.alert.message||'Alert message...')+'</p>';
         html += '<div class="dismiss-btn">I Understand</div>';
         html += '</div>';
-        html += '<div class="pvw-section" data-label="What visitors will see" style="text-align:center;padding:40px"><p style="color:#6b7280;font-size:.85rem">This alert will appear as a <strong>full-screen overlay</strong> that visitors <strong>must dismiss</strong> before accessing the site.</p></div>';
+        html += '<div class="pvw-section" data-label="What visitors will see" style="text-align:center;padding:40px"><p style="color:#6b7280;font-size:.85rem">👆 This alert will appear as a <strong>full-screen overlay</strong> that visitors <strong>must dismiss</strong> before accessing the site.</p></div>';
       } else {
         html += '<div class="pvw-alert off"><h3>No active alert</h3><p style="color:#9ca3af">Toggle the alert ON and enter a headline to see the preview</p></div>';
       }
-    }
-
-    if(S.tab === 3) {
-      /* Pages & Links preview */
-      html += '<div class="pvw-section" data-label="Footer Links Preview">';
-      html += '<div style="display:flex;gap:16px;justify-content:center;padding:10px;background:#f3f4f6;border-radius:8px;flex-wrap:wrap;">';
-      (S.navigation || []).forEach(function(item) {
-        html += '<a href="#" style="font-size:.8rem;color:#1767f6;text-decoration:none;font-weight:500;">' + esc(item.label) + '</a>';
-      });
-      html += '</div></div>';
-
-      var selectedPageSlug = document.getElementById('pe-select-page') ? document.getElementById('pe-select-page').value : '';
-      if (selectedPageSlug && S.pages[selectedPageSlug]) {
-        var p = S.pages[selectedPageSlug];
-        html += '<div class="pvw-section" data-label="Page Preview: ' + esc(p.title) + '">';
-        html += '<h1 style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:2.2rem;font-weight:300;color:#1f2937;margin-bottom:12px;text-align:center;">' + esc(p.title) + '</h1>';
-        html += '<div style="font-size:.95rem;line-height:1.6;color:#4b5563;text-align:left;">' + p.content + '</div>';
-        html += '</div>';
-      }
-    }
-
-    if(S.tab === 4) {
-      /* Map hotspots preview */
-      html += '<div class="pvw-section" data-label="Map Hotspot Preview">';
-      (S.map.spots || []).forEach(function(spot) {
-        if(spot.visible === false) return;
-        html += '<div style="display:flex;gap:12px;padding:12px;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:8px;align-items:center">';
-        html += '<img src="'+esc(spot.image)+'" style="width:64px;height:48px;object-fit:cover;border-radius:4px;background:#e5e7eb" onerror="this.style.background=\'#ddd\'">';
-        html += '<div style="flex:1;min-width:0"><h4 style="margin:0 0 4px;font-size:.8rem;font-weight:600;color:#1f2937">'+esc(spot.name)+'</h4>';
-        html += '<p style="margin:0;font-size:.7rem;color:#6b7280;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">'+esc(spot.description)+'</p></div></div>';
-      });
-      html += '</div>';
     }
 
     pv.innerHTML = html;
@@ -867,15 +596,11 @@
 
     showLoadingState();
 
-    Promise.all([readBin('cards'), readBin('site'), readBin('alert'), readBin('pages'), readBin('navigation'), readBin('about'), readBin('map')])
+    Promise.all([readBin(BINS.cards), readBin(BINS.site), readBin(BINS.alert)])
       .then(function(r) {
         if(r[0]) S.cards = r[0];
         if(r[1]) S.site = r[1];
         if(r[2]) S.alert = r[2];
-        if(r[3]) S.pages = r[3];
-        if(r[4]) S.navigation = r[4];
-        if(r[5]) S.about = r[5];
-        if(r[6]) S.map = r[6];
         dataLoaded = true;
         
         // Clear loading state and build the full editor UI
@@ -903,6 +628,7 @@
   function showErrorState() {
     overlay.innerHTML = `
       <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;text-align:center;padding:24px;">
+        <div style="font-size:2.5rem;">⚠️</div>
         <div style="font-size:1.1rem;font-weight:600;color:#fff;">Failed to load configuration</div>
         <div style="font-size:0.85rem;color:rgba(255,255,255,0.4);max-width:320px;line-height:1.5;margin-bottom:8px;">
           Could not retrieve website settings. Please check your connection and try again.
